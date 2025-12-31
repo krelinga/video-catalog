@@ -64,8 +64,9 @@ jobs:
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/video-catalog:${{ inputs.release_name }}
             ${{ secrets.DOCKER_USERNAME }}/video-catalog:latest
+
   create-release:
-    needs: build-images
+    needs: build-image
     runs-on: ubuntu-latest
     permissions:
       contents: write
