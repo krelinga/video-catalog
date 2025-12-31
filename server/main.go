@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/krelinga/video-catalog/internal"
 )
@@ -16,7 +17,7 @@ func main() {
 
 func run() error {
 	ctx := context.Background()
-	
+
 	// Load configuration
 	cfg := internal.NewConfigFromEnv()
 
@@ -33,6 +34,12 @@ func run() error {
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 	log.Println("Migrations complete")
+
+	// Start HTTP server
+	log.Println("Starting HTTP server on port", cfg.ServerPort)
+	if err := http.ListenAndServe(fmt.Sprintf(":%d", cfg.ServerPort), nil); err != nil {
+		return fmt.Errorf("server failed: %w", err)
+	}
 
 	return nil
 }
