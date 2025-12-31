@@ -1,0 +1,137 @@
+openapi: 3.0.3
+info:
+  title: Video Catalog Service
+  description: API for managing video works and sources
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+    description: Development server
+
+paths:
+  /works/{uuid}:
+    get:
+      summary: Get a work by UUID
+      description: Returns a Work object for the given UUID
+      operationId: getWork
+      parameters:
+        - name: uuid
+          in: path
+          description: UUID of the work to retrieve
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Work'
+        '404':
+          description: Work not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '400':
+          description: Invalid UUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /sources/{uuid}:
+    get:
+      summary: Get a source by UUID
+      description: Returns a Source object for the given UUID
+      operationId: getSource
+      parameters:
+        - name: uuid
+          in: path
+          description: UUID of the source to retrieve
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Source'
+        '404':
+          description: Source not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '400':
+          description: Invalid UUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    Work:
+      type: object
+      required:
+        - uuid
+        - kind
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          description: Unique identifier for the work
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        kind:
+          type: string
+          description: Type or category of the work
+          example: "movie"
+        source_uuids:
+          type: array
+          description: Optional array of source UUIDs associated with this work
+          items:
+            type: string
+            format: uuid
+          example: ["223e4567-e89b-12d3-a456-426614174001", "323e4567-e89b-12d3-a456-426614174002"]
+
+    Source:
+      type: object
+      required:
+        - uuid
+        - kind
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          description: Unique identifier for the source
+          example: "223e4567-e89b-12d3-a456-426614174001"
+        kind:
+          type: string
+          description: Type or category of the source
+          example: "streaming"
+        work_uuids:
+          type: array
+          description: Optional array of work UUIDs associated with this source
+          items:
+            type: string
+            format: uuid
+          example: ["123e4567-e89b-12d3-a456-426614174000", "423e4567-e89b-12d3-a456-426614174003"]
+
+    Error:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: Error message
+          example: "Resource not found"
+        code:
+          type: string
+          description: Error code
+          example: "NOT_FOUND"
