@@ -37,8 +37,8 @@ func (s *Server) AddFileSource(ctx context.Context, request vcrest.AddFileSource
 	return nil, fmt.Errorf("not implemented")
 }
 
-// AssociateMovieEdition associates an existing movie edition with a movie work
-func (s *Server) AssociateMovieEdition(ctx context.Context, request vcrest.AssociateMovieEditionRequestObject) (vcrest.AssociateMovieEditionResponseObject, error) {
+// AddEditionToMovie associates an existing movie edition with a movie work
+func (s *Server) AddEditionToMovie(ctx context.Context, request vcrest.AddEditionToMovieRequestObject) (vcrest.AddEditionToMovieResponseObject, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 

@@ -236,8 +236,8 @@ type ClientInterface interface {
 
 	AddFileSource(ctx context.Context, uuid openapi_types.UUID, body AddFileSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// AssociateMovieEdition request
-	AssociateMovieEdition(ctx context.Context, movieUuid openapi_types.UUID, editionUuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// AddEditionToMovie request
+	AddEditionToMovie(ctx context.Context, movieUuid openapi_types.UUID, editionUuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetWork request
 	GetWork(ctx context.Context, uuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -337,8 +337,8 @@ func (c *Client) AddFileSource(ctx context.Context, uuid openapi_types.UUID, bod
 	return c.Client.Do(req)
 }
 
-func (c *Client) AssociateMovieEdition(ctx context.Context, movieUuid openapi_types.UUID, editionUuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewAssociateMovieEditionRequest(c.Server, movieUuid, editionUuid)
+func (c *Client) AddEditionToMovie(ctx context.Context, movieUuid openapi_types.UUID, editionUuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAddEditionToMovieRequest(c.Server, movieUuid, editionUuid)
 	if err != nil {
 		return nil, err
 	}
@@ -612,8 +612,8 @@ func NewAddFileSourceRequestWithBody(server string, uuid openapi_types.UUID, con
 	return req, nil
 }
 
-// NewAssociateMovieEditionRequest generates requests for AssociateMovieEdition
-func NewAssociateMovieEditionRequest(server string, movieUuid openapi_types.UUID, editionUuid openapi_types.UUID) (*http.Request, error) {
+// NewAddEditionToMovieRequest generates requests for AddEditionToMovie
+func NewAddEditionToMovieRequest(server string, movieUuid openapi_types.UUID, editionUuid openapi_types.UUID) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -843,8 +843,8 @@ type ClientWithResponsesInterface interface {
 
 	AddFileSourceWithResponse(ctx context.Context, uuid openapi_types.UUID, body AddFileSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*AddFileSourceResponse, error)
 
-	// AssociateMovieEditionWithResponse request
-	AssociateMovieEditionWithResponse(ctx context.Context, movieUuid openapi_types.UUID, editionUuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*AssociateMovieEditionResponse, error)
+	// AddEditionToMovieWithResponse request
+	AddEditionToMovieWithResponse(ctx context.Context, movieUuid openapi_types.UUID, editionUuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*AddEditionToMovieResponse, error)
 
 	// GetWorkWithResponse request
 	GetWorkWithResponse(ctx context.Context, uuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetWorkResponse, error)
@@ -982,7 +982,7 @@ func (r AddFileSourceResponse) StatusCode() int {
 	return 0
 }
 
-type AssociateMovieEditionResponse struct {
+type AddEditionToMovieResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON400      *Error
@@ -991,7 +991,7 @@ type AssociateMovieEditionResponse struct {
 }
 
 // Status returns HTTPResponse.Status
-func (r AssociateMovieEditionResponse) Status() string {
+func (r AddEditionToMovieResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -999,7 +999,7 @@ func (r AssociateMovieEditionResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r AssociateMovieEditionResponse) StatusCode() int {
+func (r AddEditionToMovieResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -1140,13 +1140,13 @@ func (c *ClientWithResponses) AddFileSourceWithResponse(ctx context.Context, uui
 	return ParseAddFileSourceResponse(rsp)
 }
 
-// AssociateMovieEditionWithResponse request returning *AssociateMovieEditionResponse
-func (c *ClientWithResponses) AssociateMovieEditionWithResponse(ctx context.Context, movieUuid openapi_types.UUID, editionUuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*AssociateMovieEditionResponse, error) {
-	rsp, err := c.AssociateMovieEdition(ctx, movieUuid, editionUuid, reqEditors...)
+// AddEditionToMovieWithResponse request returning *AddEditionToMovieResponse
+func (c *ClientWithResponses) AddEditionToMovieWithResponse(ctx context.Context, movieUuid openapi_types.UUID, editionUuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*AddEditionToMovieResponse, error) {
+	rsp, err := c.AddEditionToMovie(ctx, movieUuid, editionUuid, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseAssociateMovieEditionResponse(rsp)
+	return ParseAddEditionToMovieResponse(rsp)
 }
 
 // GetWorkWithResponse request returning *GetWorkResponse
@@ -1406,15 +1406,15 @@ func ParseAddFileSourceResponse(rsp *http.Response) (*AddFileSourceResponse, err
 	return response, nil
 }
 
-// ParseAssociateMovieEditionResponse parses an HTTP response from a AssociateMovieEditionWithResponse call
-func ParseAssociateMovieEditionResponse(rsp *http.Response) (*AssociateMovieEditionResponse, error) {
+// ParseAddEditionToMovieResponse parses an HTTP response from a AddEditionToMovieWithResponse call
+func ParseAddEditionToMovieResponse(rsp *http.Response) (*AddEditionToMovieResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &AssociateMovieEditionResponse{
+	response := &AddEditionToMovieResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -1592,7 +1592,7 @@ type ServerInterface interface {
 	AddFileSource(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID)
 	// Associate an existing movie edition with a movie work.
 	// (PUT /works/{movieUuid}/movie/editions/{editionUuid})
-	AssociateMovieEdition(w http.ResponseWriter, r *http.Request, movieUuid openapi_types.UUID, editionUuid openapi_types.UUID)
+	AddEditionToMovie(w http.ResponseWriter, r *http.Request, movieUuid openapi_types.UUID, editionUuid openapi_types.UUID)
 	// Get a work by UUID
 	// (GET /works/{uuid})
 	GetWork(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID)
@@ -1747,8 +1747,8 @@ func (siw *ServerInterfaceWrapper) AddFileSource(w http.ResponseWriter, r *http.
 	handler.ServeHTTP(w, r)
 }
 
-// AssociateMovieEdition operation middleware
-func (siw *ServerInterfaceWrapper) AssociateMovieEdition(w http.ResponseWriter, r *http.Request) {
+// AddEditionToMovie operation middleware
+func (siw *ServerInterfaceWrapper) AddEditionToMovie(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
@@ -1771,7 +1771,7 @@ func (siw *ServerInterfaceWrapper) AssociateMovieEdition(w http.ResponseWriter, 
 	}
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.AssociateMovieEdition(w, r, movieUuid, editionUuid)
+		siw.Handler.AddEditionToMovie(w, r, movieUuid, editionUuid)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1981,7 +1981,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc("PUT "+options.BaseURL+"/sources/{uuid}/disc", wrapper.AddDiscSource)
 	m.HandleFunc("PUT "+options.BaseURL+"/sources/{uuid}/disc/all_files_added", wrapper.MarkDiscAllFilesAdded)
 	m.HandleFunc("PUT "+options.BaseURL+"/sources/{uuid}/file", wrapper.AddFileSource)
-	m.HandleFunc("PUT "+options.BaseURL+"/works/{movieUuid}/movie/editions/{editionUuid}", wrapper.AssociateMovieEdition)
+	m.HandleFunc("PUT "+options.BaseURL+"/works/{movieUuid}/movie/editions/{editionUuid}", wrapper.AddEditionToMovie)
 	m.HandleFunc("GET "+options.BaseURL+"/works/{uuid}", wrapper.GetWork)
 	m.HandleFunc("PUT "+options.BaseURL+"/works/{uuid}/movie", wrapper.AddMovieWork)
 	m.HandleFunc("PUT "+options.BaseURL+"/works/{uuid}/movie_edition", wrapper.AddMovieEdition)
@@ -2217,44 +2217,44 @@ func (response AddFileSource500JSONResponse) VisitAddFileSourceResponse(w http.R
 	return json.NewEncoder(w).Encode(response)
 }
 
-type AssociateMovieEditionRequestObject struct {
+type AddEditionToMovieRequestObject struct {
 	MovieUuid   openapi_types.UUID `json:"movieUuid"`
 	EditionUuid openapi_types.UUID `json:"editionUuid"`
 }
 
-type AssociateMovieEditionResponseObject interface {
-	VisitAssociateMovieEditionResponse(w http.ResponseWriter) error
+type AddEditionToMovieResponseObject interface {
+	VisitAddEditionToMovieResponse(w http.ResponseWriter) error
 }
 
-type AssociateMovieEdition200Response struct {
+type AddEditionToMovie200Response struct {
 }
 
-func (response AssociateMovieEdition200Response) VisitAssociateMovieEditionResponse(w http.ResponseWriter) error {
+func (response AddEditionToMovie200Response) VisitAddEditionToMovieResponse(w http.ResponseWriter) error {
 	w.WriteHeader(200)
 	return nil
 }
 
-type AssociateMovieEdition400JSONResponse Error
+type AddEditionToMovie400JSONResponse Error
 
-func (response AssociateMovieEdition400JSONResponse) VisitAssociateMovieEditionResponse(w http.ResponseWriter) error {
+func (response AddEditionToMovie400JSONResponse) VisitAddEditionToMovieResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type AssociateMovieEdition404JSONResponse Error
+type AddEditionToMovie404JSONResponse Error
 
-func (response AssociateMovieEdition404JSONResponse) VisitAssociateMovieEditionResponse(w http.ResponseWriter) error {
+func (response AddEditionToMovie404JSONResponse) VisitAddEditionToMovieResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(404)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type AssociateMovieEdition500JSONResponse Error
+type AddEditionToMovie500JSONResponse Error
 
-func (response AssociateMovieEdition500JSONResponse) VisitAssociateMovieEditionResponse(w http.ResponseWriter) error {
+func (response AddEditionToMovie500JSONResponse) VisitAddEditionToMovieResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -2428,7 +2428,7 @@ type StrictServerInterface interface {
 	AddFileSource(ctx context.Context, request AddFileSourceRequestObject) (AddFileSourceResponseObject, error)
 	// Associate an existing movie edition with a movie work.
 	// (PUT /works/{movieUuid}/movie/editions/{editionUuid})
-	AssociateMovieEdition(ctx context.Context, request AssociateMovieEditionRequestObject) (AssociateMovieEditionResponseObject, error)
+	AddEditionToMovie(ctx context.Context, request AddEditionToMovieRequestObject) (AddEditionToMovieResponseObject, error)
 	// Get a work by UUID
 	// (GET /works/{uuid})
 	GetWork(ctx context.Context, request GetWorkRequestObject) (GetWorkResponseObject, error)
@@ -2614,26 +2614,26 @@ func (sh *strictHandler) AddFileSource(w http.ResponseWriter, r *http.Request, u
 	}
 }
 
-// AssociateMovieEdition operation middleware
-func (sh *strictHandler) AssociateMovieEdition(w http.ResponseWriter, r *http.Request, movieUuid openapi_types.UUID, editionUuid openapi_types.UUID) {
-	var request AssociateMovieEditionRequestObject
+// AddEditionToMovie operation middleware
+func (sh *strictHandler) AddEditionToMovie(w http.ResponseWriter, r *http.Request, movieUuid openapi_types.UUID, editionUuid openapi_types.UUID) {
+	var request AddEditionToMovieRequestObject
 
 	request.MovieUuid = movieUuid
 	request.EditionUuid = editionUuid
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.AssociateMovieEdition(ctx, request.(AssociateMovieEditionRequestObject))
+		return sh.ssi.AddEditionToMovie(ctx, request.(AddEditionToMovieRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "AssociateMovieEdition")
+		handler = middleware(handler, "AddEditionToMovie")
 	}
 
 	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(AssociateMovieEditionResponseObject); ok {
-		if err := validResponse.VisitAssociateMovieEditionResponse(w); err != nil {
+	} else if validResponse, ok := response.(AddEditionToMovieResponseObject); ok {
+		if err := validResponse.VisitAddEditionToMovieResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -2736,37 +2736,37 @@ func (sh *strictHandler) AddMovieEdition(w http.ResponseWriter, r *http.Request,
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

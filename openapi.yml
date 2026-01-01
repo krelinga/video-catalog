@@ -109,7 +109,7 @@ paths:
     put:
       summary: Associate an existing movie edition with a movie work.
       description: Associates an existing movie edition identified by editionUuid with the movie work identified by movieUuid.
-      operationId: associateMovieEdition
+      operationId: addEditionToMovie
       parameters:
         - name: movieUuid
           in: path
