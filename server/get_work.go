@@ -23,10 +23,18 @@ func (s *Server) GetWork(ctx context.Context, request vcrest.GetWorkRequestObjec
 		return
 	}
 
+	txn, err := s.Pool.Begin(ctx)
+	if err != nil {
+		outResp = vcrest.GetWork500JSONResponse{
+			Message: fmt.Sprintf("failed to begin transaction: %v", err),
+		}
+		return
+	}
+	defer txn.Rollback(ctx)
+
 	var kind internal.WorkKind
 	var bodyRaw json.RawMessage
-
-	err = s.Pool.QueryRow(ctx, `
+	err = txn.QueryRow(ctx, `
 		SELECT kind, body
 		FROM works
 		WHERE uuid = $1
@@ -45,7 +53,7 @@ func (s *Server) GetWork(ctx context.Context, request vcrest.GetWorkRequestObjec
 		return
 	}
 
-	rows, err := s.Pool.Query(ctx, `
+	rows, err := txn.Query(ctx, `
 		SELECT source_uuid
 		FROM works
 		WHERE uuid = $1
