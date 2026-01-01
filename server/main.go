@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/krelinga/video-catalog/internal"
+	"github.com/krelinga/video-catalog/vcrest"
 )
 
 func main() {
@@ -35,9 +36,21 @@ func run() error {
 	}
 	log.Println("Migrations complete")
 
+	// Create server instance
+	srv := &Server{
+		Config: cfg,
+	}
+	strictHandler := vcrest.NewStrictHandler(srv, nil)
+	httpHandler := vcrest.Handler(strictHandler)
+
+	httpServer := &http.Server{
+		Addr:    fmt.Sprintf(":%d", cfg.ServerPort),
+		Handler: httpHandler,
+	}
+
 	// Start HTTP server
 	log.Println("Starting HTTP server on port", cfg.ServerPort)
-	if err := http.ListenAndServe(fmt.Sprintf(":%d", cfg.ServerPort), nil); err != nil {
+	if err := httpServer.ListenAndServe(); err != nil {
 		return fmt.Errorf("server failed: %w", err)
 	}
 
