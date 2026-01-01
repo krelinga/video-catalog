@@ -86,24 +86,113 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /sources/{uuid}/disc:
+    post:
+      summary: Add a disc source with the given UUID.
+      description: Adds a disc source identified by the given UUID
+      operationId: addDiscSource
+      parameters:
+        - name: uuid
+          in: path
+          description: UUID of the disc source to add
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - origDirName
+                - path
+              properties:
+                origDirName:
+                  type: string
+                  description: Original directory name of the disc
+                  example: "MyDiscDirectory"
+                path:
+                  type: string
+                  description: Filesystem path where the disc is located
+                  example: "/nas/media/MyDiscDirectory"
+      responses:
+        '201':
+          description: Disc source added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Source'
+        '409':
+          description: Source with this UUID already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /sources/{uuid}/disc/all_files_added:
+    put:
+      summary: Mark all files from the disc source as added
+      description: Marks all files from the disc source identified by the given UUID as added
+      operationId: markDiscFilesAdded
+      parameters:
+        - name: uuid
+          in: path
+          description: UUID of the disc source
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Disc files marked as added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Source'
+        '404':
+          description: Source not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
 components:
   schemas:
     Work:
       type: object
       required:
         - uuid
-        - kind
       properties:
         uuid:
           type: string
           format: uuid
           description: Unique identifier for the work
           example: "123e4567-e89b-12d3-a456-426614174000"
-        kind:
-          type: string
-          description: Type or category of the work
-          example: "movie"
-        source_uuids:
+        movie:
+          $ref: '#/components/schemas/Movie'
+        movieEdition:
+          $ref: '#/components/schemas/MovieEdition'
+        sourceUuids:
           type: array
           description: Optional array of source UUIDs associated with this work
           items:
@@ -115,18 +204,17 @@ components:
       type: object
       required:
         - uuid
-        - kind
       properties:
         uuid:
           type: string
           format: uuid
           description: Unique identifier for the source
           example: "223e4567-e89b-12d3-a456-426614174001"
-        kind:
-          type: string
-          description: Type or category of the source
-          example: "streaming"
-        work_uuids:
+        disc:
+          $ref: '#/components/schemas/Disc'
+        file:
+          $ref: '#/components/schemas/File'
+        workUuids:
           type: array
           description: Optional array of work UUIDs associated with this source
           items:
@@ -147,3 +235,65 @@ components:
           type: string
           description: Error code
           example: "NOT_FOUND"
+
+    Disc:
+      type: object
+      description: Details about a disc source.  Included if the source is a disc.
+      required:
+        - origDirName
+        - path
+        - allFilesAdded
+      properties:
+        origDirName:
+          type: string
+          description: Original directory name of the disc
+          example: "MyDiscDirectory"
+        path:
+          type: string
+          description: Filesystem path where the disc is located
+          example: "/nas/media/MyDiscDirectory"
+        allFilesAdded:
+          type: boolean
+          description: Indicates whether all files from the disc have been added
+          example: true
+
+    File: 
+      type: object
+      description: Details about a file source. Included if the source is a file.
+      required:
+        - path
+      properties:
+        path:
+          type: string
+          description: Filesystem path of the file
+          example: "/nas/media/MyDiscDirectory/movie.mkv"
+
+    Movie:
+      type: object
+      description: Details specific to movie works.  Included if the work is a movie.
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          description: Title of the movie
+          example: "Inception"
+        releaseYear:
+          type: integer
+          description: Release year of the movie
+          example: 2010
+        tmdbId:
+          type: integer
+          description: The Movie Database (TMDb) identifier for the movie
+          example: 27205
+
+    MovieEdition:
+      type: object
+      description: Details about a specific edition of a movie.  Included if the work has a movie edition.
+      required:
+        - editionType
+      properties:
+        editionType:
+          type: string
+          description: Type of the movie edition (e.g., "Director's Cut", "Theatrical")
+          example: "Director's Cut"

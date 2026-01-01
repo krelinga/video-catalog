@@ -24,6 +24,18 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// Disc Details about a disc source.  Included if the source is a disc.
+type Disc struct {
+	// AllFilesAdded Indicates whether all files from the disc have been added
+	AllFilesAdded bool `json:"allFilesAdded"`
+
+	// OrigDirName Original directory name of the disc
+	OrigDirName string `json:"origDirName"`
+
+	// Path Filesystem path where the disc is located
+	Path string `json:"path"`
+}
+
 // Error defines model for Error.
 type Error struct {
 	// Code Error code
@@ -33,29 +45,71 @@ type Error struct {
 	Message string `json:"message"`
 }
 
+// File Details about a file source. Included if the source is a file.
+type File struct {
+	// Path Filesystem path of the file
+	Path string `json:"path"`
+}
+
+// Movie Details specific to movie works.  Included if the work is a movie.
+type Movie struct {
+	// ReleaseYear Release year of the movie
+	ReleaseYear *int `json:"releaseYear,omitempty"`
+
+	// Title Title of the movie
+	Title string `json:"title"`
+
+	// TmdbId The Movie Database (TMDb) identifier for the movie
+	TmdbId *int `json:"tmdbId,omitempty"`
+}
+
+// MovieEdition Details about a specific edition of a movie.  Included if the work has a movie edition.
+type MovieEdition struct {
+	// EditionType Type of the movie edition (e.g., "Director's Cut", "Theatrical")
+	EditionType string `json:"editionType"`
+}
+
 // Source defines model for Source.
 type Source struct {
-	// Kind Type or category of the source
-	Kind string `json:"kind"`
+	// Disc Details about a disc source.  Included if the source is a disc.
+	Disc *Disc `json:"disc,omitempty"`
+
+	// File Details about a file source. Included if the source is a file.
+	File *File `json:"file,omitempty"`
 
 	// Uuid Unique identifier for the source
 	Uuid openapi_types.UUID `json:"uuid"`
 
 	// WorkUuids Optional array of work UUIDs associated with this source
-	WorkUuids []openapi_types.UUID `json:"work_uuids,omitempty"`
+	WorkUuids []openapi_types.UUID `json:"workUuids,omitempty"`
 }
 
 // Work defines model for Work.
 type Work struct {
-	// Kind Type or category of the work
-	Kind string `json:"kind"`
+	// Movie Details specific to movie works.  Included if the work is a movie.
+	Movie *Movie `json:"movie,omitempty"`
+
+	// MovieEdition Details about a specific edition of a movie.  Included if the work has a movie edition.
+	MovieEdition *MovieEdition `json:"movieEdition,omitempty"`
 
 	// SourceUuids Optional array of source UUIDs associated with this work
-	SourceUuids []openapi_types.UUID `json:"source_uuids,omitempty"`
+	SourceUuids []openapi_types.UUID `json:"sourceUuids,omitempty"`
 
 	// Uuid Unique identifier for the work
 	Uuid openapi_types.UUID `json:"uuid"`
 }
+
+// AddDiscSourceJSONBody defines parameters for AddDiscSource.
+type AddDiscSourceJSONBody struct {
+	// OrigDirName Original directory name of the disc
+	OrigDirName string `json:"origDirName"`
+
+	// Path Filesystem path where the disc is located
+	Path string `json:"path"`
+}
+
+// AddDiscSourceJSONRequestBody defines body for AddDiscSource for application/json ContentType.
+type AddDiscSourceJSONRequestBody AddDiscSourceJSONBody
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -133,12 +187,56 @@ type ClientInterface interface {
 	// GetSource request
 	GetSource(ctx context.Context, uuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// AddDiscSourceWithBody request with any body
+	AddDiscSourceWithBody(ctx context.Context, uuid openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	AddDiscSource(ctx context.Context, uuid openapi_types.UUID, body AddDiscSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// MarkDiscFilesAdded request
+	MarkDiscFilesAdded(ctx context.Context, uuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetWork request
 	GetWork(ctx context.Context, uuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
 func (c *Client) GetSource(ctx context.Context, uuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetSourceRequest(c.Server, uuid)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) AddDiscSourceWithBody(ctx context.Context, uuid openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAddDiscSourceRequestWithBody(c.Server, uuid, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) AddDiscSource(ctx context.Context, uuid openapi_types.UUID, body AddDiscSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAddDiscSourceRequest(c.Server, uuid, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) MarkDiscFilesAdded(ctx context.Context, uuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewMarkDiscFilesAddedRequest(c.Server, uuid)
 	if err != nil {
 		return nil, err
 	}
@@ -188,6 +286,87 @@ func NewGetSourceRequest(server string, uuid openapi_types.UUID) (*http.Request,
 	}
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewAddDiscSourceRequest calls the generic AddDiscSource builder with application/json body
+func NewAddDiscSourceRequest(server string, uuid openapi_types.UUID, body AddDiscSourceJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewAddDiscSourceRequestWithBody(server, uuid, "application/json", bodyReader)
+}
+
+// NewAddDiscSourceRequestWithBody generates requests for AddDiscSource with any type of body
+func NewAddDiscSourceRequestWithBody(server string, uuid openapi_types.UUID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "uuid", runtime.ParamLocationPath, uuid)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/sources/%s/disc", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewMarkDiscFilesAddedRequest generates requests for MarkDiscFilesAdded
+func NewMarkDiscFilesAddedRequest(server string, uuid openapi_types.UUID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "uuid", runtime.ParamLocationPath, uuid)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/sources/%s/disc/all_files_added", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -275,6 +454,14 @@ type ClientWithResponsesInterface interface {
 	// GetSourceWithResponse request
 	GetSourceWithResponse(ctx context.Context, uuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetSourceResponse, error)
 
+	// AddDiscSourceWithBodyWithResponse request with any body
+	AddDiscSourceWithBodyWithResponse(ctx context.Context, uuid openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddDiscSourceResponse, error)
+
+	AddDiscSourceWithResponse(ctx context.Context, uuid openapi_types.UUID, body AddDiscSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*AddDiscSourceResponse, error)
+
+	// MarkDiscFilesAddedWithResponse request
+	MarkDiscFilesAddedWithResponse(ctx context.Context, uuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*MarkDiscFilesAddedResponse, error)
+
 	// GetWorkWithResponse request
 	GetWorkWithResponse(ctx context.Context, uuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetWorkResponse, error)
 }
@@ -298,6 +485,55 @@ func (r GetSourceResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r GetSourceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type AddDiscSourceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *Source
+	JSON400      *Error
+	JSON409      *Error
+	JSON500      *Error
+}
+
+// Status returns HTTPResponse.Status
+func (r AddDiscSourceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r AddDiscSourceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type MarkDiscFilesAddedResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *Source
+	JSON404      *Error
+	JSON500      *Error
+}
+
+// Status returns HTTPResponse.Status
+func (r MarkDiscFilesAddedResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r MarkDiscFilesAddedResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -338,6 +574,32 @@ func (c *ClientWithResponses) GetSourceWithResponse(ctx context.Context, uuid op
 	return ParseGetSourceResponse(rsp)
 }
 
+// AddDiscSourceWithBodyWithResponse request with arbitrary body returning *AddDiscSourceResponse
+func (c *ClientWithResponses) AddDiscSourceWithBodyWithResponse(ctx context.Context, uuid openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddDiscSourceResponse, error) {
+	rsp, err := c.AddDiscSourceWithBody(ctx, uuid, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAddDiscSourceResponse(rsp)
+}
+
+func (c *ClientWithResponses) AddDiscSourceWithResponse(ctx context.Context, uuid openapi_types.UUID, body AddDiscSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*AddDiscSourceResponse, error) {
+	rsp, err := c.AddDiscSource(ctx, uuid, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAddDiscSourceResponse(rsp)
+}
+
+// MarkDiscFilesAddedWithResponse request returning *MarkDiscFilesAddedResponse
+func (c *ClientWithResponses) MarkDiscFilesAddedWithResponse(ctx context.Context, uuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*MarkDiscFilesAddedResponse, error) {
+	rsp, err := c.MarkDiscFilesAdded(ctx, uuid, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseMarkDiscFilesAddedResponse(rsp)
+}
+
 // GetWorkWithResponse request returning *GetWorkResponse
 func (c *ClientWithResponses) GetWorkWithResponse(ctx context.Context, uuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetWorkResponse, error) {
 	rsp, err := c.GetWork(ctx, uuid, reqEditors...)
@@ -374,6 +636,93 @@ func ParseGetSourceResponse(rsp *http.Response) (*GetSourceResponse, error) {
 			return nil, err
 		}
 		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseAddDiscSourceResponse parses an HTTP response from a AddDiscSourceWithResponse call
+func ParseAddDiscSourceResponse(rsp *http.Response) (*AddDiscSourceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &AddDiscSourceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest Source
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseMarkDiscFilesAddedResponse parses an HTTP response from a MarkDiscFilesAddedWithResponse call
+func ParseMarkDiscFilesAddedResponse(rsp *http.Response) (*MarkDiscFilesAddedResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &MarkDiscFilesAddedResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Source
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
 		var dest Error
@@ -446,6 +795,12 @@ type ServerInterface interface {
 	// Get a source by UUID
 	// (GET /sources/{uuid})
 	GetSource(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID)
+	// Add a disc source with the given UUID.
+	// (POST /sources/{uuid}/disc)
+	AddDiscSource(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID)
+	// Mark all files from the disc source as added
+	// (PUT /sources/{uuid}/disc/all_files_added)
+	MarkDiscFilesAdded(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID)
 	// Get a work by UUID
 	// (GET /works/{uuid})
 	GetWork(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID)
@@ -476,6 +831,56 @@ func (siw *ServerInterfaceWrapper) GetSource(w http.ResponseWriter, r *http.Requ
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetSource(w, r, uuid)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AddDiscSource operation middleware
+func (siw *ServerInterfaceWrapper) AddDiscSource(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "uuid" -------------
+	var uuid openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "uuid", r.PathValue("uuid"), &uuid, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "uuid", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AddDiscSource(w, r, uuid)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// MarkDiscFilesAdded operation middleware
+func (siw *ServerInterfaceWrapper) MarkDiscFilesAdded(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "uuid" -------------
+	var uuid openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "uuid", r.PathValue("uuid"), &uuid, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "uuid", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.MarkDiscFilesAdded(w, r, uuid)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -631,6 +1036,8 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	}
 
 	m.HandleFunc("GET "+options.BaseURL+"/sources/{uuid}", wrapper.GetSource)
+	m.HandleFunc("POST "+options.BaseURL+"/sources/{uuid}/disc", wrapper.AddDiscSource)
+	m.HandleFunc("PUT "+options.BaseURL+"/sources/{uuid}/disc/all_files_added", wrapper.MarkDiscFilesAdded)
 	m.HandleFunc("GET "+options.BaseURL+"/works/{uuid}", wrapper.GetWork)
 
 	return m
@@ -674,6 +1081,86 @@ func (response GetSource404JSONResponse) VisitGetSourceResponse(w http.ResponseW
 type GetSource500JSONResponse Error
 
 func (response GetSource500JSONResponse) VisitGetSourceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AddDiscSourceRequestObject struct {
+	Uuid openapi_types.UUID `json:"uuid"`
+	Body *AddDiscSourceJSONRequestBody
+}
+
+type AddDiscSourceResponseObject interface {
+	VisitAddDiscSourceResponse(w http.ResponseWriter) error
+}
+
+type AddDiscSource201JSONResponse Source
+
+func (response AddDiscSource201JSONResponse) VisitAddDiscSourceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AddDiscSource400JSONResponse Error
+
+func (response AddDiscSource400JSONResponse) VisitAddDiscSourceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AddDiscSource409JSONResponse Error
+
+func (response AddDiscSource409JSONResponse) VisitAddDiscSourceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AddDiscSource500JSONResponse Error
+
+func (response AddDiscSource500JSONResponse) VisitAddDiscSourceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type MarkDiscFilesAddedRequestObject struct {
+	Uuid openapi_types.UUID `json:"uuid"`
+}
+
+type MarkDiscFilesAddedResponseObject interface {
+	VisitMarkDiscFilesAddedResponse(w http.ResponseWriter) error
+}
+
+type MarkDiscFilesAdded200JSONResponse Source
+
+func (response MarkDiscFilesAdded200JSONResponse) VisitMarkDiscFilesAddedResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type MarkDiscFilesAdded404JSONResponse Error
+
+func (response MarkDiscFilesAdded404JSONResponse) VisitMarkDiscFilesAddedResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type MarkDiscFilesAdded500JSONResponse Error
+
+func (response MarkDiscFilesAdded500JSONResponse) VisitMarkDiscFilesAddedResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -729,6 +1216,12 @@ type StrictServerInterface interface {
 	// Get a source by UUID
 	// (GET /sources/{uuid})
 	GetSource(ctx context.Context, request GetSourceRequestObject) (GetSourceResponseObject, error)
+	// Add a disc source with the given UUID.
+	// (POST /sources/{uuid}/disc)
+	AddDiscSource(ctx context.Context, request AddDiscSourceRequestObject) (AddDiscSourceResponseObject, error)
+	// Mark all files from the disc source as added
+	// (PUT /sources/{uuid}/disc/all_files_added)
+	MarkDiscFilesAdded(ctx context.Context, request MarkDiscFilesAddedRequestObject) (MarkDiscFilesAddedResponseObject, error)
 	// Get a work by UUID
 	// (GET /works/{uuid})
 	GetWork(ctx context.Context, request GetWorkRequestObject) (GetWorkResponseObject, error)
@@ -789,6 +1282,65 @@ func (sh *strictHandler) GetSource(w http.ResponseWriter, r *http.Request, uuid 
 	}
 }
 
+// AddDiscSource operation middleware
+func (sh *strictHandler) AddDiscSource(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID) {
+	var request AddDiscSourceRequestObject
+
+	request.Uuid = uuid
+
+	var body AddDiscSourceJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.AddDiscSource(ctx, request.(AddDiscSourceRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AddDiscSource")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AddDiscSourceResponseObject); ok {
+		if err := validResponse.VisitAddDiscSourceResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// MarkDiscFilesAdded operation middleware
+func (sh *strictHandler) MarkDiscFilesAdded(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID) {
+	var request MarkDiscFilesAddedRequestObject
+
+	request.Uuid = uuid
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.MarkDiscFilesAdded(ctx, request.(MarkDiscFilesAddedRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "MarkDiscFilesAdded")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(MarkDiscFilesAddedResponseObject); ok {
+		if err := validResponse.VisitMarkDiscFilesAddedResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetWork operation middleware
 func (sh *strictHandler) GetWork(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID) {
 	var request GetWorkRequestObject
@@ -818,20 +1370,30 @@ func (sh *strictHandler) GetWork(w http.ResponseWriter, r *http.Request, uuid op
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/+xVUW/bNhD+K8Rtj0ok20qa6W1YtsEvzVDX60MQFIx0ktlIJHs8qTMC//eBlJLUlTo7",
-	"yDZsQJ9sUMe77+77Pt495KaxRqNmB9k9uHyDjQx/fyYy5P9YMhaJFYbj3BTofwt0OSnLymjI+mARvkWA",
-	"f8jG1ggZvL56+/6Xq/XrS4iAt9YfOSalK9hF0KBzsvpqsofPn+d7g860lKPQhkVpWl2ME+8iIPzYKsIC",
-	"suvHKjePgeb2A+bsEaxCsnGPd0oXY1hvtxaF71IyVoa2wpSCNyh6SHs4HRPKxsOZ6Ltt1UT2tVYfWxSq",
-	"QM2qVEiiNPS1/PP5AtOz81cnePHD7clsXixOZHp2fpLOz89n6exVmiQziKA01EiGrC85AeWTobv3/qMb",
-	"A7oKf2QtJJEMzfposV4vL52QzplcScZCfFK8EbxRbgLoNcwOI00ggvRw2MJTqBibgPVga8NBAD8SxXAp",
-	"8DwljHeG7l4qCz+tPdIa0ymcgtrP7XgeBg/8BRNf1r4+VjGLw2Hzl/DwfPWPxnikog4Ae5YgfLTSpRnj",
-	"/vG3ZUDaSC0rpSvRqQJNAO2E1MXAlfMAFAf8v4eInyTL2lRihdSpYJoOyfVJZ6fJaeJnZSxqaRVksDhN",
-	"ThcQgZW8CXOPh8TxvYe+80cV8hjgG+SWtBNS9I+d6Ht6HG+lOtRBShDqkfQXlwVk8Cvy6sHRVpJskJEc",
-	"ZNcj8tbLy/3HULARhEwKO39b+SgPHSLQssEnVp44YGoxGvbPEcLa3fjLzhrtenPOk6RfT5pRh0FIa2uV",
-	"h37iD84jvf8s//eEJWTwXfy0AONh+8VD24H3/VZXbZ6jc2Vbi4fqnqj0byze792J2kvdyVoVgSwxjCfU",
-	"Tv/52qsv1+4ugrN/p2lG8q+fQ+qQBA6BEbi2aSRte6EK+aC8222vZh8SBx8ebxH/7D/PIO/61+loe4QV",
-	"+v82R2j5mzUeawfR/JeNETT3ZAsfEa5MafUSO6yNbVDzkBgiaKmGDDbMNovj2uSy3hjH2UVykcDuZvdn",
-	"AAAA//+4kXSHRAwAAA==",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
