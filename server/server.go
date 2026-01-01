@@ -44,11 +44,6 @@ func (s *Server) AddEditionToMovie(ctx context.Context, request vcrest.AddEditio
 	return nil, fmt.Errorf("not implemented")
 }
 
-// GetWork retrieves a work by UUID
-func (s *Server) GetWork(ctx context.Context, request vcrest.GetWorkRequestObject) (vcrest.GetWorkResponseObject, error) {
-	return nil, fmt.Errorf("not implemented")
-}
-
 // PutMovieEdition creates a new movie edition work with the given UUID
 func (s *Server) PutMovieEdition(ctx context.Context, request vcrest.PutMovieEditionRequestObject) (vcrest.PutMovieEditionResponseObject, error) {
 	return nil, fmt.Errorf("not implemented")
