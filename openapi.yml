@@ -51,7 +51,7 @@ paths:
     put:
       summary: Add a movie work with the given uuid.
       description: Adds a movie work identified by the given UUID
-      operationId: addMovieWork
+      operationId: putMovieWork
       parameters:
         - name: uuid
           in: path
@@ -151,7 +151,7 @@ paths:
     put:
       summary: Create a new movie edition work with the given uuid.
       description: Create a new movie edition with the given uuid.
-      operationId: addMovieEdition
+      operationId: putMovieEdition
       parameters:
         - name: uuid
           in: path
@@ -240,7 +240,7 @@ paths:
     put:
       summary: Add a disc source with the given UUID.
       description: Adds a disc source identified by the given UUID
-      operationId: addDiscSource
+      operationId: putDiscSource
       parameters:
         - name: uuid
           in: path
@@ -374,7 +374,7 @@ paths:
     put:
       summary: Add a file source with the given UUID.
       description: Adds a file source identified by the given UUID
-      operationId: addFileSource
+      operationId: putFileSource
       parameters:
         - name: uuid
           in: path

@@ -24,8 +24,8 @@ func (s *Server) GetSource(ctx context.Context, request vcrest.GetSourceRequestO
 	return nil, fmt.Errorf("not implemented")
 }
 
-// AddDiscSource adds a disc source with the given UUID
-func (s *Server) AddDiscSource(ctx context.Context, request vcrest.AddDiscSourceRequestObject) (vcrest.AddDiscSourceResponseObject, error) {
+// PutDiscSource adds or updates a disc source with the given UUID
+func (s *Server) PutDiscSource(ctx context.Context, request vcrest.PutDiscSourceRequestObject) (vcrest.PutDiscSourceResponseObject, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
@@ -34,8 +34,8 @@ func (s *Server) MarkDiscAllFilesAdded(ctx context.Context, request vcrest.MarkD
 	return nil, fmt.Errorf("not implemented")
 }
 
-// AddFileSource adds a file source with the given UUID
-func (s *Server) AddFileSource(ctx context.Context, request vcrest.AddFileSourceRequestObject) (vcrest.AddFileSourceResponseObject, error) {
+// PutFileSource adds or updates a file source with the given UUID
+func (s *Server) PutFileSource(ctx context.Context, request vcrest.PutFileSourceRequestObject) (vcrest.PutFileSourceResponseObject, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
@@ -49,12 +49,12 @@ func (s *Server) GetWork(ctx context.Context, request vcrest.GetWorkRequestObjec
 	return nil, fmt.Errorf("not implemented")
 }
 
-// AddMovieWork adds a movie work with the given UUID
-func (s *Server) AddMovieWork(ctx context.Context, request vcrest.AddMovieWorkRequestObject) (vcrest.AddMovieWorkResponseObject, error) {
+// PutMovieWork adds or updates a movie work with the given UUID
+func (s *Server) PutMovieWork(ctx context.Context, request vcrest.PutMovieWorkRequestObject) (vcrest.PutMovieWorkResponseObject, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
-// AddMovieEdition creates a new movie edition work with the given UUID
-func (s *Server) AddMovieEdition(ctx context.Context, request vcrest.AddMovieEditionRequestObject) (vcrest.AddMovieEditionResponseObject, error) {
+// PutMovieEdition creates a new movie edition work with the given UUID
+func (s *Server) PutMovieEdition(ctx context.Context, request vcrest.PutMovieEditionRequestObject) (vcrest.PutMovieEditionResponseObject, error) {
 	return nil, fmt.Errorf("not implemented")
 }
