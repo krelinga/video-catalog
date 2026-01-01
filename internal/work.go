@@ -6,6 +6,6 @@ type MovieSource struct {
 	TmdbID      *int   `json:"tmdbId,omitempty"`
 }
 
-type MovieEdition struct {
+type MovieEditionSource struct {
 	EditionType string `json:"editionType"`
 }
