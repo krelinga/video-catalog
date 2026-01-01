@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/krelinga/video-catalog/internal"
 	"github.com/krelinga/video-catalog/vcrest"
 )
 
 type Server struct {
 	Config *internal.Config
+	Pool *pgxpool.Pool
 }
 
 // AddFileToDisc associates a file source with a disc source

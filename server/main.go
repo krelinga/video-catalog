@@ -39,6 +39,7 @@ func run() error {
 	// Create server instance
 	srv := &Server{
 		Config: cfg,
+		Pool:  pool,
 	}
 	strictHandler := vcrest.NewStrictHandler(srv, nil)
 	httpHandler := vcrest.Handler(strictHandler)
