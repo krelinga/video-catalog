@@ -483,61 +483,59 @@ components:
     Disc:
       type: object
       description: Details about a disc source.  Included if the source is a disc.
-      required:
-        - origDirName
-        - path
-        - allFilesAdded
       properties:
         origDirName:
           type: string
+          nullable: true
           description: Original directory name of the disc
           example: "MyDiscDirectory"
         path:
           type: string
+          nullable: true
           description: Filesystem path where the disc is located
           example: "/nas/media/MyDiscDirectory"
         allFilesAdded:
           type: boolean
+          nullable: true
           description: Indicates whether all files from the disc have been added
           example: true
 
     File: 
       type: object
       description: Details about a file source. Included if the source is a file.
-      required:
-        - path
       properties:
         path:
           type: string
+          nullable: true
           description: Filesystem path of the file
           example: "/nas/media/MyDiscDirectory/movie.mkv"
 
     Movie:
       type: object
       description: Details specific to movie works.  Included if the work is a movie.
-      required:
-        - title
       properties:
         title:
           type: string
+          nullable: true
           description: Title of the movie
           example: "Inception"
         releaseYear:
           type: integer
+          nullable: true
           description: Release year of the movie
           example: 2010
         tmdbId:
           type: integer
+          nullable: true
           description: The Movie Database (TMDb) identifier for the movie
           example: 27205
 
     MovieEdition:
       type: object
       description: Details about a specific edition of a movie.  Included if the work has a movie edition.
-      required:
-        - editionType
       properties:
         editionType:
           type: string
+          nullable: true
           description: Type of the movie edition (e.g., "Director's Cut", "Theatrical")
           example: "Director's Cut"

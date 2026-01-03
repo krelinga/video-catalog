@@ -10,3 +10,4 @@ generate:
 output-options:
   skip-prune: true
   prefer-skip-optional-pointer-on-container-types: true
+  nullable-type: true

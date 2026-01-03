@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/krelinga/video-catalog/internal"
 	"github.com/krelinga/video-catalog/vcrest"
+	"github.com/oapi-codegen/nullable"
 )
 
 // GetWork retrieves a work by UUID
@@ -89,9 +90,9 @@ func (s *Server) GetWork(ctx context.Context, request vcrest.GetWorkRequestObjec
 		outResp = vcrest.GetWork200JSONResponse{
 			Uuid: request.Uuid,
 			Movie: &vcrest.Movie{
-				Title:       movieBody.Title,
-				ReleaseYear: movieBody.ReleaseYear,
-				TmdbId:      movieBody.TmdbId,
+				Title:       required(movieBody.Title),	
+				ReleaseYear: optional(movieBody.ReleaseYear),
+				TmdbId:      optional(movieBody.TmdbId),
 			},
 			SourceUuids: sourceUuids,
 		}
@@ -102,4 +103,15 @@ func (s *Server) GetWork(ctx context.Context, request vcrest.GetWorkRequestObjec
 		}
 		return
 	}
+}
+
+func required[T any](t T) nullable.Nullable[T] {
+	return nullable.NewNullableWithValue(t)
+}
+
+func optional[T any](t *T) nullable.Nullable[T] {
+	if t == nil {
+		return nullable.Nullable[T]{}
+	}
+	return nullable.NewNullableWithValue(*t)
 }
