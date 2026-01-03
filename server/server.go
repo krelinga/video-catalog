@@ -14,11 +14,6 @@ type Server struct {
 	Pool *pgxpool.Pool
 }
 
-// AddFileToDisc associates a file source with a disc source
-func (s *Server) AddFileToDisc(ctx context.Context, request vcrest.AddFileToDiscRequestObject) (vcrest.AddFileToDiscResponseObject, error) {
-	return nil, fmt.Errorf("not implemented")
-}
-
 // GetSource retrieves a source by UUID
 func (s *Server) GetSource(ctx context.Context, request vcrest.GetSourceRequestObject) (vcrest.GetSourceResponseObject, error) {
 	return nil, fmt.Errorf("not implemented")
@@ -29,18 +24,8 @@ func (s *Server) PutDiscSource(ctx context.Context, request vcrest.PutDiscSource
 	return nil, fmt.Errorf("not implemented")
 }
 
-// MarkDiscAllFilesAdded marks all files from the disc source as added
-func (s *Server) MarkDiscAllFilesAdded(ctx context.Context, request vcrest.MarkDiscAllFilesAddedRequestObject) (vcrest.MarkDiscAllFilesAddedResponseObject, error) {
-	return nil, fmt.Errorf("not implemented")
-}
-
 // PutFileSource adds or updates a file source with the given UUID
 func (s *Server) PutFileSource(ctx context.Context, request vcrest.PutFileSourceRequestObject) (vcrest.PutFileSourceResponseObject, error) {
-	return nil, fmt.Errorf("not implemented")
-}
-
-// AddEditionToMovie associates an existing movie edition with a movie work
-func (s *Server) AddEditionToMovie(ctx context.Context, request vcrest.AddEditionToMovieRequestObject) (vcrest.AddEditionToMovieResponseObject, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 

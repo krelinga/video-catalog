@@ -65,22 +65,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - title
-              properties:
-                title:
-                  type: string
-                  description: Title of the movie
-                  example: "Inception"
-                releaseYear:
-                  type: integer
-                  description: Release year of the movie
-                  example: 2010
-                tmdbId:
-                  type: integer
-                  description: The Movie Database (TMDb) identifier for the movie
-                  example: 27205
+              $ref: '#/components/schemas/Movie'
       responses:
         '200':
           description: Movie work updated successfully
@@ -105,52 +90,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /works/{movieUuid}/movie/editions/{editionUuid}:
-    put:
-      summary: Associate an existing movie edition with a movie work.
-      description: Associates an existing movie edition identified by editionUuid with the movie work identified by movieUuid.
-      operationId: addEditionToMovie
-      parameters:
-        - name: movieUuid
-          in: path
-          description: UUID of the movie work
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: editionUuid
-          in: path
-          description: UUID of the movie edition to associate
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '200':
-          description: Movie edition associated successfully
-        '404':
-          description: Movie work or edition not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '400':
-          description: Invalid request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
   /works/{uuid}/movie_edition:
     put:
-      summary: Create a new movie edition work with the given uuid.
-      description: Create a new movie edition with the given uuid.
+      summary: Create (or replace) a movie edition work with the given uuid.
+      description: Create (or replace) a movie edition with the given uuid.
       operationId: putMovieEdition
       parameters:
         - name: uuid
@@ -165,14 +108,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - editionType
-              properties:
-                editionType:
-                  type: string
-                  description: Type of the movie edition (e.g., "Director's Cut", "Theatrical")
-                  example: "Director's Cut"
+              $ref: '#/components/schemas/MovieEdition'
       responses:
         '200':
           description: Movie edition updated successfully
@@ -238,8 +174,8 @@ paths:
 
   /sources/{uuid}/disc:
     put:
-      summary: Add a disc source with the given UUID.
-      description: Adds a disc source identified by the given UUID
+      summary: Add (or replace) a disc source with the given UUID.
+      description: Adds (or replaces) a disc source identified by the given UUID
       operationId: putDiscSource
       parameters:
         - name: uuid
@@ -254,19 +190,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - origDirName
-                - path
-              properties:
-                origDirName:
-                  type: string
-                  description: Original directory name of the disc
-                  example: "MyDiscDirectory"
-                path:
-                  type: string
-                  description: Filesystem path where the disc is located
-                  example: "/nas/media/MyDiscDirectory"
+              $ref: '#/components/schemas/Disc'
       responses:
         '200':
           description: Disc source updated successfully
@@ -291,89 +215,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /sources/{uuid}/disc/all_files_added:
-    put:
-      summary: Mark all files from the disc source as added
-      description: Marks all files from the disc source identified by the given UUID as added
-      operationId: markDiscAllFilesAdded
-      parameters:
-        - name: uuid
-          in: path
-          description: UUID of the disc source
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '200':
-          description: Disc files marked as added successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Source'
-        '404':
-          description: Source not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /sources/{discUuid}/disc/file/{fileUuid}:
-    put:
-      summary: Associates a file source with a disc source
-      description: Adds a file identified by fileUuid to the disc source identified by discUuid
-      operationId: addFileToDisc
-      parameters:
-        - name: discUuid
-          in: path
-          description: UUID of the disc source
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: fileUuid
-          in: path
-          description: UUID of the file to add
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '201':
-          description: File added successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Source'
-        '404':
-          description: Disc or File source not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '400':
-          description: Invalid request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
   /sources/{uuid}/file:
     put:
-      summary: Add a file source with the given UUID.
-      description: Adds a file source identified by the given UUID
+      summary: Add (or replace) a file source with the given UUID.
+      description: Adds (or replaces) a file source identified by the given UUID
       operationId: putFileSource
       parameters:
         - name: uuid
@@ -388,14 +233,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - path
-              properties:
-                path:
-                  type: string
-                  description: Filesystem path of the file
-                  example: "/nas/media/MyDiscDirectory/movie.mkv"
+              $ref: '#/components/schemas/File'
       responses:
         '200':
           description: File source updated successfully

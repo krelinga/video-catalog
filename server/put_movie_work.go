@@ -28,12 +28,6 @@ func (s *Server) PutMovieWork(ctx context.Context, request vcrest.PutMovieWorkRe
 		}
 		return
 	}
-	if request.Body.Title == "" {
-		outResp = vcrest.PutMovieWork400JSONResponse{
-			Message: "non-empty title is required",
-		}
-		return
-	}
 
 	// Start transaction
 	txn, err := s.Pool.Begin(ctx)
@@ -88,9 +82,31 @@ func (s *Server) PutMovieWork(ctx context.Context, request vcrest.PutMovieWorkRe
 	}
 
 	// Update fields
-	body.Title = request.Body.Title
-	body.ReleaseYear = request.Body.ReleaseYear
-	body.TmdbId = request.Body.TmdbId
+	if request.Body.Title.IsSpecified() {
+		if request.Body.Title.IsNull() || request.Body.Title.MustGet() == "" {
+			outResp = vcrest.PutMovieWork400JSONResponse{
+				Message: "title cannot be null or empty",
+			}
+			return
+		}
+		body.Title = request.Body.Title.MustGet()
+	}
+	if request.Body.ReleaseYear.IsSpecified() {
+		if request.Body.ReleaseYear.IsNull() {
+			body.ReleaseYear = nil
+		} else {
+			ry := request.Body.ReleaseYear.MustGet()
+			body.ReleaseYear = &ry
+		}
+	}
+	if request.Body.TmdbId.IsSpecified() {
+		if request.Body.TmdbId.IsNull() {
+			body.TmdbId = nil
+		} else {
+			tid := request.Body.TmdbId.MustGet()
+			body.TmdbId = &tid
+		}
+	}
 
 	// Marshal body
 	bodyBytes, err := json.Marshal(body)

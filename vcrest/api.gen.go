@@ -100,50 +100,17 @@ type Work struct {
 	Uuid openapi_types.UUID `json:"uuid"`
 }
 
-// PutDiscSourceJSONBody defines parameters for PutDiscSource.
-type PutDiscSourceJSONBody struct {
-	// OrigDirName Original directory name of the disc
-	OrigDirName string `json:"origDirName"`
-
-	// Path Filesystem path where the disc is located
-	Path string `json:"path"`
-}
-
-// PutFileSourceJSONBody defines parameters for PutFileSource.
-type PutFileSourceJSONBody struct {
-	// Path Filesystem path of the file
-	Path string `json:"path"`
-}
-
-// PutMovieWorkJSONBody defines parameters for PutMovieWork.
-type PutMovieWorkJSONBody struct {
-	// ReleaseYear Release year of the movie
-	ReleaseYear *int `json:"releaseYear,omitempty"`
-
-	// Title Title of the movie
-	Title string `json:"title"`
-
-	// TmdbId The Movie Database (TMDb) identifier for the movie
-	TmdbId *int `json:"tmdbId,omitempty"`
-}
-
-// PutMovieEditionJSONBody defines parameters for PutMovieEdition.
-type PutMovieEditionJSONBody struct {
-	// EditionType Type of the movie edition (e.g., "Director's Cut", "Theatrical")
-	EditionType string `json:"editionType"`
-}
-
 // PutDiscSourceJSONRequestBody defines body for PutDiscSource for application/json ContentType.
-type PutDiscSourceJSONRequestBody PutDiscSourceJSONBody
+type PutDiscSourceJSONRequestBody = Disc
 
 // PutFileSourceJSONRequestBody defines body for PutFileSource for application/json ContentType.
-type PutFileSourceJSONRequestBody PutFileSourceJSONBody
+type PutFileSourceJSONRequestBody = File
 
 // PutMovieWorkJSONRequestBody defines body for PutMovieWork for application/json ContentType.
-type PutMovieWorkJSONRequestBody PutMovieWorkJSONBody
+type PutMovieWorkJSONRequestBody = Movie
 
 // PutMovieEditionJSONRequestBody defines body for PutMovieEdition for application/json ContentType.
-type PutMovieEditionJSONRequestBody PutMovieEditionJSONBody
+type PutMovieEditionJSONRequestBody = MovieEdition
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -218,9 +185,6 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 
 // The interface specification for the client above.
 type ClientInterface interface {
-	// AddFileToDisc request
-	AddFileToDisc(ctx context.Context, discUuid openapi_types.UUID, fileUuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
-
 	// GetSource request
 	GetSource(ctx context.Context, uuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -229,16 +193,10 @@ type ClientInterface interface {
 
 	PutDiscSource(ctx context.Context, uuid openapi_types.UUID, body PutDiscSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// MarkDiscAllFilesAdded request
-	MarkDiscAllFilesAdded(ctx context.Context, uuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
-
 	// PutFileSourceWithBody request with any body
 	PutFileSourceWithBody(ctx context.Context, uuid openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	PutFileSource(ctx context.Context, uuid openapi_types.UUID, body PutFileSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// AddEditionToMovie request
-	AddEditionToMovie(ctx context.Context, movieUuid openapi_types.UUID, editionUuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetWork request
 	GetWork(ctx context.Context, uuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -252,18 +210,6 @@ type ClientInterface interface {
 	PutMovieEditionWithBody(ctx context.Context, uuid openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	PutMovieEdition(ctx context.Context, uuid openapi_types.UUID, body PutMovieEditionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-}
-
-func (c *Client) AddFileToDisc(ctx context.Context, discUuid openapi_types.UUID, fileUuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewAddFileToDiscRequest(c.Server, discUuid, fileUuid)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
 }
 
 func (c *Client) GetSource(ctx context.Context, uuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -302,18 +248,6 @@ func (c *Client) PutDiscSource(ctx context.Context, uuid openapi_types.UUID, bod
 	return c.Client.Do(req)
 }
 
-func (c *Client) MarkDiscAllFilesAdded(ctx context.Context, uuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewMarkDiscAllFilesAddedRequest(c.Server, uuid)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
 func (c *Client) PutFileSourceWithBody(ctx context.Context, uuid openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewPutFileSourceRequestWithBody(c.Server, uuid, contentType, body)
 	if err != nil {
@@ -328,18 +262,6 @@ func (c *Client) PutFileSourceWithBody(ctx context.Context, uuid openapi_types.U
 
 func (c *Client) PutFileSource(ctx context.Context, uuid openapi_types.UUID, body PutFileSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewPutFileSourceRequest(c.Server, uuid, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) AddEditionToMovie(ctx context.Context, movieUuid openapi_types.UUID, editionUuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewAddEditionToMovieRequest(c.Server, movieUuid, editionUuid)
 	if err != nil {
 		return nil, err
 	}
@@ -408,47 +330,6 @@ func (c *Client) PutMovieEdition(ctx context.Context, uuid openapi_types.UUID, b
 		return nil, err
 	}
 	return c.Client.Do(req)
-}
-
-// NewAddFileToDiscRequest generates requests for AddFileToDisc
-func NewAddFileToDiscRequest(server string, discUuid openapi_types.UUID, fileUuid openapi_types.UUID) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "discUuid", runtime.ParamLocationPath, discUuid)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "fileUuid", runtime.ParamLocationPath, fileUuid)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/sources/%s/disc/file/%s", pathParam0, pathParam1)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("PUT", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
 }
 
 // NewGetSourceRequest generates requests for GetSource
@@ -532,40 +413,6 @@ func NewPutDiscSourceRequestWithBody(server string, uuid openapi_types.UUID, con
 	return req, nil
 }
 
-// NewMarkDiscAllFilesAddedRequest generates requests for MarkDiscAllFilesAdded
-func NewMarkDiscAllFilesAddedRequest(server string, uuid openapi_types.UUID) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "uuid", runtime.ParamLocationPath, uuid)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/sources/%s/disc/all_files_added", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("PUT", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
 // NewPutFileSourceRequest calls the generic PutFileSource builder with application/json body
 func NewPutFileSourceRequest(server string, uuid openapi_types.UUID, body PutFileSourceJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -609,47 +456,6 @@ func NewPutFileSourceRequestWithBody(server string, uuid openapi_types.UUID, con
 	}
 
 	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewAddEditionToMovieRequest generates requests for AddEditionToMovie
-func NewAddEditionToMovieRequest(server string, movieUuid openapi_types.UUID, editionUuid openapi_types.UUID) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "movieUuid", runtime.ParamLocationPath, movieUuid)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "editionUuid", runtime.ParamLocationPath, editionUuid)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/works/%s/movie/editions/%s", pathParam0, pathParam1)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("PUT", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
 
 	return req, nil
 }
@@ -825,9 +631,6 @@ func WithBaseURL(baseURL string) ClientOption {
 
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
-	// AddFileToDiscWithResponse request
-	AddFileToDiscWithResponse(ctx context.Context, discUuid openapi_types.UUID, fileUuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*AddFileToDiscResponse, error)
-
 	// GetSourceWithResponse request
 	GetSourceWithResponse(ctx context.Context, uuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetSourceResponse, error)
 
@@ -836,16 +639,10 @@ type ClientWithResponsesInterface interface {
 
 	PutDiscSourceWithResponse(ctx context.Context, uuid openapi_types.UUID, body PutDiscSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*PutDiscSourceResponse, error)
 
-	// MarkDiscAllFilesAddedWithResponse request
-	MarkDiscAllFilesAddedWithResponse(ctx context.Context, uuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*MarkDiscAllFilesAddedResponse, error)
-
 	// PutFileSourceWithBodyWithResponse request with any body
 	PutFileSourceWithBodyWithResponse(ctx context.Context, uuid openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutFileSourceResponse, error)
 
 	PutFileSourceWithResponse(ctx context.Context, uuid openapi_types.UUID, body PutFileSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*PutFileSourceResponse, error)
-
-	// AddEditionToMovieWithResponse request
-	AddEditionToMovieWithResponse(ctx context.Context, movieUuid openapi_types.UUID, editionUuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*AddEditionToMovieResponse, error)
 
 	// GetWorkWithResponse request
 	GetWorkWithResponse(ctx context.Context, uuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetWorkResponse, error)
@@ -859,31 +656,6 @@ type ClientWithResponsesInterface interface {
 	PutMovieEditionWithBodyWithResponse(ctx context.Context, uuid openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutMovieEditionResponse, error)
 
 	PutMovieEditionWithResponse(ctx context.Context, uuid openapi_types.UUID, body PutMovieEditionJSONRequestBody, reqEditors ...RequestEditorFn) (*PutMovieEditionResponse, error)
-}
-
-type AddFileToDiscResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON201      *Source
-	JSON400      *Error
-	JSON404      *Error
-	JSON500      *Error
-}
-
-// Status returns HTTPResponse.Status
-func (r AddFileToDiscResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r AddFileToDiscResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
 }
 
 type GetSourceResponse struct {
@@ -935,30 +707,6 @@ func (r PutDiscSourceResponse) StatusCode() int {
 	return 0
 }
 
-type MarkDiscAllFilesAddedResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *Source
-	JSON404      *Error
-	JSON500      *Error
-}
-
-// Status returns HTTPResponse.Status
-func (r MarkDiscAllFilesAddedResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r MarkDiscAllFilesAddedResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
 type PutFileSourceResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -977,30 +725,6 @@ func (r PutFileSourceResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r PutFileSourceResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type AddEditionToMovieResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON400      *Error
-	JSON404      *Error
-	JSON500      *Error
-}
-
-// Status returns HTTPResponse.Status
-func (r AddEditionToMovieResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r AddEditionToMovieResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -1080,15 +804,6 @@ func (r PutMovieEditionResponse) StatusCode() int {
 	return 0
 }
 
-// AddFileToDiscWithResponse request returning *AddFileToDiscResponse
-func (c *ClientWithResponses) AddFileToDiscWithResponse(ctx context.Context, discUuid openapi_types.UUID, fileUuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*AddFileToDiscResponse, error) {
-	rsp, err := c.AddFileToDisc(ctx, discUuid, fileUuid, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseAddFileToDiscResponse(rsp)
-}
-
 // GetSourceWithResponse request returning *GetSourceResponse
 func (c *ClientWithResponses) GetSourceWithResponse(ctx context.Context, uuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetSourceResponse, error) {
 	rsp, err := c.GetSource(ctx, uuid, reqEditors...)
@@ -1115,15 +830,6 @@ func (c *ClientWithResponses) PutDiscSourceWithResponse(ctx context.Context, uui
 	return ParsePutDiscSourceResponse(rsp)
 }
 
-// MarkDiscAllFilesAddedWithResponse request returning *MarkDiscAllFilesAddedResponse
-func (c *ClientWithResponses) MarkDiscAllFilesAddedWithResponse(ctx context.Context, uuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*MarkDiscAllFilesAddedResponse, error) {
-	rsp, err := c.MarkDiscAllFilesAdded(ctx, uuid, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseMarkDiscAllFilesAddedResponse(rsp)
-}
-
 // PutFileSourceWithBodyWithResponse request with arbitrary body returning *PutFileSourceResponse
 func (c *ClientWithResponses) PutFileSourceWithBodyWithResponse(ctx context.Context, uuid openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutFileSourceResponse, error) {
 	rsp, err := c.PutFileSourceWithBody(ctx, uuid, contentType, body, reqEditors...)
@@ -1139,15 +845,6 @@ func (c *ClientWithResponses) PutFileSourceWithResponse(ctx context.Context, uui
 		return nil, err
 	}
 	return ParsePutFileSourceResponse(rsp)
-}
-
-// AddEditionToMovieWithResponse request returning *AddEditionToMovieResponse
-func (c *ClientWithResponses) AddEditionToMovieWithResponse(ctx context.Context, movieUuid openapi_types.UUID, editionUuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*AddEditionToMovieResponse, error) {
-	rsp, err := c.AddEditionToMovie(ctx, movieUuid, editionUuid, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseAddEditionToMovieResponse(rsp)
 }
 
 // GetWorkWithResponse request returning *GetWorkResponse
@@ -1191,53 +888,6 @@ func (c *ClientWithResponses) PutMovieEditionWithResponse(ctx context.Context, u
 		return nil, err
 	}
 	return ParsePutMovieEditionResponse(rsp)
-}
-
-// ParseAddFileToDiscResponse parses an HTTP response from a AddFileToDiscWithResponse call
-func ParseAddFileToDiscResponse(rsp *http.Response) (*AddFileToDiscResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &AddFileToDiscResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
-		var dest Source
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON201 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest Error
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest Error
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest Error
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	}
-
-	return response, nil
 }
 
 // ParseGetSourceResponse parses an HTTP response from a GetSourceWithResponse call
@@ -1327,46 +977,6 @@ func ParsePutDiscSourceResponse(rsp *http.Response) (*PutDiscSourceResponse, err
 	return response, nil
 }
 
-// ParseMarkDiscAllFilesAddedResponse parses an HTTP response from a MarkDiscAllFilesAddedWithResponse call
-func ParseMarkDiscAllFilesAddedResponse(rsp *http.Response) (*MarkDiscAllFilesAddedResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &MarkDiscAllFilesAddedResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest Source
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest Error
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest Error
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	}
-
-	return response, nil
-}
-
 // ParsePutFileSourceResponse parses an HTTP response from a PutFileSourceWithResponse call
 func ParsePutFileSourceResponse(rsp *http.Response) (*PutFileSourceResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -1394,46 +1004,6 @@ func ParsePutFileSourceResponse(rsp *http.Response) (*PutFileSourceResponse, err
 			return nil, err
 		}
 		response.JSON409 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest Error
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseAddEditionToMovieResponse parses an HTTP response from a AddEditionToMovieWithResponse call
-func ParseAddEditionToMovieResponse(rsp *http.Response) (*AddEditionToMovieResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &AddEditionToMovieResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest Error
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest Error
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
 		var dest Error
@@ -1576,31 +1146,22 @@ func ParsePutMovieEditionResponse(rsp *http.Response) (*PutMovieEditionResponse,
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
-	// Associates a file source with a disc source
-	// (PUT /sources/{discUuid}/disc/file/{fileUuid})
-	AddFileToDisc(w http.ResponseWriter, r *http.Request, discUuid openapi_types.UUID, fileUuid openapi_types.UUID)
 	// Get a source by UUID
 	// (GET /sources/{uuid})
 	GetSource(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID)
-	// Add a disc source with the given UUID.
+	// Add (or replace) a disc source with the given UUID.
 	// (PUT /sources/{uuid}/disc)
 	PutDiscSource(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID)
-	// Mark all files from the disc source as added
-	// (PUT /sources/{uuid}/disc/all_files_added)
-	MarkDiscAllFilesAdded(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID)
-	// Add a file source with the given UUID.
+	// Add (or replace) a file source with the given UUID.
 	// (PUT /sources/{uuid}/file)
 	PutFileSource(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID)
-	// Associate an existing movie edition with a movie work.
-	// (PUT /works/{movieUuid}/movie/editions/{editionUuid})
-	AddEditionToMovie(w http.ResponseWriter, r *http.Request, movieUuid openapi_types.UUID, editionUuid openapi_types.UUID)
 	// Get a work by UUID
 	// (GET /works/{uuid})
 	GetWork(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID)
 	// Add a movie work with the given uuid.
 	// (PUT /works/{uuid}/movie)
 	PutMovieWork(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID)
-	// Create a new movie edition work with the given uuid.
+	// Create (or replace) a movie edition work with the given uuid.
 	// (PUT /works/{uuid}/movie_edition)
 	PutMovieEdition(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID)
 }
@@ -1613,40 +1174,6 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
-
-// AddFileToDisc operation middleware
-func (siw *ServerInterfaceWrapper) AddFileToDisc(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-
-	// ------------- Path parameter "discUuid" -------------
-	var discUuid openapi_types.UUID
-
-	err = runtime.BindStyledParameterWithOptions("simple", "discUuid", r.PathValue("discUuid"), &discUuid, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "discUuid", Err: err})
-		return
-	}
-
-	// ------------- Path parameter "fileUuid" -------------
-	var fileUuid openapi_types.UUID
-
-	err = runtime.BindStyledParameterWithOptions("simple", "fileUuid", r.PathValue("fileUuid"), &fileUuid, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "fileUuid", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.AddFileToDisc(w, r, discUuid, fileUuid)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
 
 // GetSource operation middleware
 func (siw *ServerInterfaceWrapper) GetSource(w http.ResponseWriter, r *http.Request) {
@@ -1698,31 +1225,6 @@ func (siw *ServerInterfaceWrapper) PutDiscSource(w http.ResponseWriter, r *http.
 	handler.ServeHTTP(w, r)
 }
 
-// MarkDiscAllFilesAdded operation middleware
-func (siw *ServerInterfaceWrapper) MarkDiscAllFilesAdded(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-
-	// ------------- Path parameter "uuid" -------------
-	var uuid openapi_types.UUID
-
-	err = runtime.BindStyledParameterWithOptions("simple", "uuid", r.PathValue("uuid"), &uuid, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "uuid", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.MarkDiscAllFilesAdded(w, r, uuid)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
 // PutFileSource operation middleware
 func (siw *ServerInterfaceWrapper) PutFileSource(w http.ResponseWriter, r *http.Request) {
 
@@ -1739,40 +1241,6 @@ func (siw *ServerInterfaceWrapper) PutFileSource(w http.ResponseWriter, r *http.
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.PutFileSource(w, r, uuid)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// AddEditionToMovie operation middleware
-func (siw *ServerInterfaceWrapper) AddEditionToMovie(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-
-	// ------------- Path parameter "movieUuid" -------------
-	var movieUuid openapi_types.UUID
-
-	err = runtime.BindStyledParameterWithOptions("simple", "movieUuid", r.PathValue("movieUuid"), &movieUuid, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "movieUuid", Err: err})
-		return
-	}
-
-	// ------------- Path parameter "editionUuid" -------------
-	var editionUuid openapi_types.UUID
-
-	err = runtime.BindStyledParameterWithOptions("simple", "editionUuid", r.PathValue("editionUuid"), &editionUuid, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "editionUuid", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.AddEditionToMovie(w, r, movieUuid, editionUuid)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1977,62 +1445,14 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 		ErrorHandlerFunc:   options.ErrorHandlerFunc,
 	}
 
-	m.HandleFunc("PUT "+options.BaseURL+"/sources/{discUuid}/disc/file/{fileUuid}", wrapper.AddFileToDisc)
 	m.HandleFunc("GET "+options.BaseURL+"/sources/{uuid}", wrapper.GetSource)
 	m.HandleFunc("PUT "+options.BaseURL+"/sources/{uuid}/disc", wrapper.PutDiscSource)
-	m.HandleFunc("PUT "+options.BaseURL+"/sources/{uuid}/disc/all_files_added", wrapper.MarkDiscAllFilesAdded)
 	m.HandleFunc("PUT "+options.BaseURL+"/sources/{uuid}/file", wrapper.PutFileSource)
-	m.HandleFunc("PUT "+options.BaseURL+"/works/{movieUuid}/movie/editions/{editionUuid}", wrapper.AddEditionToMovie)
 	m.HandleFunc("GET "+options.BaseURL+"/works/{uuid}", wrapper.GetWork)
 	m.HandleFunc("PUT "+options.BaseURL+"/works/{uuid}/movie", wrapper.PutMovieWork)
 	m.HandleFunc("PUT "+options.BaseURL+"/works/{uuid}/movie_edition", wrapper.PutMovieEdition)
 
 	return m
-}
-
-type AddFileToDiscRequestObject struct {
-	DiscUuid openapi_types.UUID `json:"discUuid"`
-	FileUuid openapi_types.UUID `json:"fileUuid"`
-}
-
-type AddFileToDiscResponseObject interface {
-	VisitAddFileToDiscResponse(w http.ResponseWriter) error
-}
-
-type AddFileToDisc201JSONResponse Source
-
-func (response AddFileToDisc201JSONResponse) VisitAddFileToDiscResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(201)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type AddFileToDisc400JSONResponse Error
-
-func (response AddFileToDisc400JSONResponse) VisitAddFileToDiscResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type AddFileToDisc404JSONResponse Error
-
-func (response AddFileToDisc404JSONResponse) VisitAddFileToDiscResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type AddFileToDisc500JSONResponse Error
-
-func (response AddFileToDisc500JSONResponse) VisitAddFileToDiscResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(500)
-
-	return json.NewEncoder(w).Encode(response)
 }
 
 type GetSourceRequestObject struct {
@@ -2131,41 +1551,6 @@ func (response PutDiscSource500JSONResponse) VisitPutDiscSourceResponse(w http.R
 	return json.NewEncoder(w).Encode(response)
 }
 
-type MarkDiscAllFilesAddedRequestObject struct {
-	Uuid openapi_types.UUID `json:"uuid"`
-}
-
-type MarkDiscAllFilesAddedResponseObject interface {
-	VisitMarkDiscAllFilesAddedResponse(w http.ResponseWriter) error
-}
-
-type MarkDiscAllFilesAdded200JSONResponse Source
-
-func (response MarkDiscAllFilesAdded200JSONResponse) VisitMarkDiscAllFilesAddedResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type MarkDiscAllFilesAdded404JSONResponse Error
-
-func (response MarkDiscAllFilesAdded404JSONResponse) VisitMarkDiscAllFilesAddedResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type MarkDiscAllFilesAdded500JSONResponse Error
-
-func (response MarkDiscAllFilesAdded500JSONResponse) VisitMarkDiscAllFilesAddedResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(500)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
 type PutFileSourceRequestObject struct {
 	Uuid openapi_types.UUID `json:"uuid"`
 	Body *PutFileSourceJSONRequestBody
@@ -2212,50 +1597,6 @@ func (response PutFileSource409JSONResponse) VisitPutFileSourceResponse(w http.R
 type PutFileSource500JSONResponse Error
 
 func (response PutFileSource500JSONResponse) VisitPutFileSourceResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(500)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type AddEditionToMovieRequestObject struct {
-	MovieUuid   openapi_types.UUID `json:"movieUuid"`
-	EditionUuid openapi_types.UUID `json:"editionUuid"`
-}
-
-type AddEditionToMovieResponseObject interface {
-	VisitAddEditionToMovieResponse(w http.ResponseWriter) error
-}
-
-type AddEditionToMovie200Response struct {
-}
-
-func (response AddEditionToMovie200Response) VisitAddEditionToMovieResponse(w http.ResponseWriter) error {
-	w.WriteHeader(200)
-	return nil
-}
-
-type AddEditionToMovie400JSONResponse Error
-
-func (response AddEditionToMovie400JSONResponse) VisitAddEditionToMovieResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type AddEditionToMovie404JSONResponse Error
-
-func (response AddEditionToMovie404JSONResponse) VisitAddEditionToMovieResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type AddEditionToMovie500JSONResponse Error
-
-func (response AddEditionToMovie500JSONResponse) VisitAddEditionToMovieResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -2412,31 +1753,22 @@ func (response PutMovieEdition500JSONResponse) VisitPutMovieEditionResponse(w ht
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
-	// Associates a file source with a disc source
-	// (PUT /sources/{discUuid}/disc/file/{fileUuid})
-	AddFileToDisc(ctx context.Context, request AddFileToDiscRequestObject) (AddFileToDiscResponseObject, error)
 	// Get a source by UUID
 	// (GET /sources/{uuid})
 	GetSource(ctx context.Context, request GetSourceRequestObject) (GetSourceResponseObject, error)
-	// Add a disc source with the given UUID.
+	// Add (or replace) a disc source with the given UUID.
 	// (PUT /sources/{uuid}/disc)
 	PutDiscSource(ctx context.Context, request PutDiscSourceRequestObject) (PutDiscSourceResponseObject, error)
-	// Mark all files from the disc source as added
-	// (PUT /sources/{uuid}/disc/all_files_added)
-	MarkDiscAllFilesAdded(ctx context.Context, request MarkDiscAllFilesAddedRequestObject) (MarkDiscAllFilesAddedResponseObject, error)
-	// Add a file source with the given UUID.
+	// Add (or replace) a file source with the given UUID.
 	// (PUT /sources/{uuid}/file)
 	PutFileSource(ctx context.Context, request PutFileSourceRequestObject) (PutFileSourceResponseObject, error)
-	// Associate an existing movie edition with a movie work.
-	// (PUT /works/{movieUuid}/movie/editions/{editionUuid})
-	AddEditionToMovie(ctx context.Context, request AddEditionToMovieRequestObject) (AddEditionToMovieResponseObject, error)
 	// Get a work by UUID
 	// (GET /works/{uuid})
 	GetWork(ctx context.Context, request GetWorkRequestObject) (GetWorkResponseObject, error)
 	// Add a movie work with the given uuid.
 	// (PUT /works/{uuid}/movie)
 	PutMovieWork(ctx context.Context, request PutMovieWorkRequestObject) (PutMovieWorkResponseObject, error)
-	// Create a new movie edition work with the given uuid.
+	// Create (or replace) a movie edition work with the given uuid.
 	// (PUT /works/{uuid}/movie_edition)
 	PutMovieEdition(ctx context.Context, request PutMovieEditionRequestObject) (PutMovieEditionResponseObject, error)
 }
@@ -2468,33 +1800,6 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictHTTPServerOptions
-}
-
-// AddFileToDisc operation middleware
-func (sh *strictHandler) AddFileToDisc(w http.ResponseWriter, r *http.Request, discUuid openapi_types.UUID, fileUuid openapi_types.UUID) {
-	var request AddFileToDiscRequestObject
-
-	request.DiscUuid = discUuid
-	request.FileUuid = fileUuid
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.AddFileToDisc(ctx, request.(AddFileToDiscRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "AddFileToDisc")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(AddFileToDiscResponseObject); ok {
-		if err := validResponse.VisitAddFileToDiscResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
 }
 
 // GetSource operation middleware
@@ -2556,32 +1861,6 @@ func (sh *strictHandler) PutDiscSource(w http.ResponseWriter, r *http.Request, u
 	}
 }
 
-// MarkDiscAllFilesAdded operation middleware
-func (sh *strictHandler) MarkDiscAllFilesAdded(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID) {
-	var request MarkDiscAllFilesAddedRequestObject
-
-	request.Uuid = uuid
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.MarkDiscAllFilesAdded(ctx, request.(MarkDiscAllFilesAddedRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "MarkDiscAllFilesAdded")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(MarkDiscAllFilesAddedResponseObject); ok {
-		if err := validResponse.VisitMarkDiscAllFilesAddedResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
 // PutFileSource operation middleware
 func (sh *strictHandler) PutFileSource(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID) {
 	var request PutFileSourceRequestObject
@@ -2608,33 +1887,6 @@ func (sh *strictHandler) PutFileSource(w http.ResponseWriter, r *http.Request, u
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(PutFileSourceResponseObject); ok {
 		if err := validResponse.VisitPutFileSourceResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// AddEditionToMovie operation middleware
-func (sh *strictHandler) AddEditionToMovie(w http.ResponseWriter, r *http.Request, movieUuid openapi_types.UUID, editionUuid openapi_types.UUID) {
-	var request AddEditionToMovieRequestObject
-
-	request.MovieUuid = movieUuid
-	request.EditionUuid = editionUuid
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.AddEditionToMovie(ctx, request.(AddEditionToMovieRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "AddEditionToMovie")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(AddEditionToMovieResponseObject); ok {
-		if err := validResponse.VisitAddEditionToMovieResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -2737,38 +1989,32 @@ func (sh *strictHandler) PutMovieEdition(w http.ResponseWriter, r *http.Request,
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
-	"mISJ+SQwAAA=",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
