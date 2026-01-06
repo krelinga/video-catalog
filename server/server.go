@@ -28,12 +28,3 @@ func (s *Server) PutDiscSource(ctx context.Context, request vcrest.PutDiscSource
 func (s *Server) PutFileSource(ctx context.Context, request vcrest.PutFileSourceRequestObject) (vcrest.PutFileSourceResponseObject, error) {
 	return nil, fmt.Errorf("not implemented")
 }
-
-// PutMovieEdition creates a new movie edition work with the given UUID
-func (s *Server) PutMovieEdition(ctx context.Context, request vcrest.PutMovieEditionRequestObject) (vcrest.PutMovieEditionResponseObject, error) {
-	return nil, fmt.Errorf("not implemented")
-}
-
-func (s *Server) PatchMovieEdition(ctx context.Context, request vcrest.PatchMovieEditionRequestObject) (vcrest.PatchMovieEditionResponseObject, error) {
-	return nil, fmt.Errorf("not implemented")
-}
