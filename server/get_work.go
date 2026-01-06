@@ -3,11 +3,11 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/krelinga/video-catalog/internal"
 	"github.com/krelinga/video-catalog/vcrest"
 	"github.com/oapi-codegen/nullable"
@@ -40,9 +40,14 @@ func (s *Server) GetWork(ctx context.Context, request vcrest.GetWorkRequestObjec
 		FROM works
 		WHERE uuid = $1
 	`, requestUuid).Scan(&kind, &bodyRaw)
-	if err != nil {
+	if errors.Is(err, pgx.ErrNoRows) {
 		outResp = vcrest.GetWork404JSONResponse{
 			Message: "work not found",
+		}
+		return
+	} else if err != nil {
+		outResp = vcrest.GetWork500JSONResponse{
+			Message: fmt.Sprintf("failed to query work: %v", err),
 		}
 		return
 	}
@@ -50,30 +55,6 @@ func (s *Server) GetWork(ctx context.Context, request vcrest.GetWorkRequestObjec
 	if !kind.IsValid() {
 		outResp = vcrest.GetWork500JSONResponse{
 			Message: fmt.Sprintf("invalid work kind in database: %s", kind),
-		}
-		return
-	}
-
-	rows, err := txn.Query(ctx, `
-		SELECT source_uuid
-		FROM works
-		WHERE uuid = $1
-	`, requestUuid)
-	if err != nil {
-		outResp = vcrest.GetWork500JSONResponse{
-			Message: fmt.Sprintf("failed to query work sources: %v", err),
-		}
-		return
-	}
-	var sourcekUuid pgtype.UUID
-	var sourceUuids []uuid.UUID
-	_, err = pgx.ForEachRow(rows, []any{&sourcekUuid}, func() error {
-		sourceUuids = append(sourceUuids, sourcekUuid.Bytes)
-		return nil
-	})
-	if err != nil {
-		outResp = vcrest.GetWork500JSONResponse{
-			Message: fmt.Sprintf("failed to scan work sources: %v", err),
 		}
 		return
 	}
@@ -94,7 +75,6 @@ func (s *Server) GetWork(ctx context.Context, request vcrest.GetWorkRequestObjec
 				ReleaseYear: optional(movieBody.ReleaseYear),
 				TmdbId:      optional(movieBody.TmdbId),
 			},
-			SourceUuids: sourceUuids,
 		}
 		return
 	default:

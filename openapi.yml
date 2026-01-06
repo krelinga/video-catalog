@@ -454,13 +454,6 @@ components:
           $ref: '#/components/schemas/Movie'
         movieEdition:
           $ref: '#/components/schemas/MovieEdition'
-        sourceUuids:
-          type: array
-          description: Optional array of source UUIDs associated with this work
-          items:
-            type: string
-            format: uuid
-          example: ["223e4567-e89b-12d3-a456-426614174001", "323e4567-e89b-12d3-a456-426614174002"]
 
     Source:
       type: object
@@ -476,13 +469,39 @@ components:
           $ref: '#/components/schemas/Disc'
         file:
           $ref: '#/components/schemas/File'
-        workUuids:
+
+    Plan:
+      type: object
+      required:
+        - uuid
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          description: Unique identifier for the plan
+          example: "523e4567-e89b-12d3-a456-426614174004"
+          
+        direct:
+          type: boolean
+          description: Indicates if the plan is direct
+          example: true
+        chapterRange:
+          $ref: '#/components/schemas/ChapterRange'
+
+        inputs:
           type: array
-          description: Optional array of work UUIDs associated with this source
+          description: Array of Source UUIDs that this plan will read from.
           items:
             type: string
             format: uuid
-          example: ["123e4567-e89b-12d3-a456-426614174000", "423e4567-e89b-12d3-a456-426614174003"]
+          example: ["623e4567-e89b-12d3-a456-426614174005", "723e4567-e89b-12d3-a456-426614174006"]
+        outputs:
+          type: array
+          description: Array of Work UUIDs that this plan will produce.
+          items:
+            type: string
+            format: uuid
+          example: ["823e4567-e89b-12d3-a456-426614174007", "923e4567-e89b-12d3-a456-426614174008"]
 
     Error:
       type: object
@@ -557,3 +576,20 @@ components:
           nullable: true
           description: Type of the movie edition (e.g., "Director's Cut", "Theatrical")
           example: "Director's Cut"
+
+    ChapterRange:
+      type: object
+      description: Represents a range of chapters in a video file
+      properties:
+        startChapter:
+          type: integer
+          format: int32
+          nullable: true
+          description: Starting chapter number (inclusive).  If null, starts from the beginning of the file.
+          example: 1
+        endChapter:
+          type: integer
+          format: int32
+          nullable: true
+          description: Ending chapter number (inclusive).  If null, ends at the end of the file.
+          example: 5
