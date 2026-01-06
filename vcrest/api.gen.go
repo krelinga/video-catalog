@@ -112,6 +112,9 @@ type PatchMovieWorkJSONRequestBody = Movie
 // PutMovieWorkJSONRequestBody defines body for PutMovieWork for application/json ContentType.
 type PutMovieWorkJSONRequestBody = Movie
 
+// PatchMovieEditionJSONRequestBody defines body for PatchMovieEdition for application/json ContentType.
+type PatchMovieEditionJSONRequestBody = MovieEdition
+
 // PutMovieEditionJSONRequestBody defines body for PutMovieEdition for application/json ContentType.
 type PutMovieEditionJSONRequestBody = MovieEdition
 
@@ -213,6 +216,11 @@ type ClientInterface interface {
 	PutMovieWorkWithBody(ctx context.Context, uuid openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	PutMovieWork(ctx context.Context, uuid openapi_types.UUID, body PutMovieWorkJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PatchMovieEditionWithBody request with any body
+	PatchMovieEditionWithBody(ctx context.Context, uuid openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PatchMovieEdition(ctx context.Context, uuid openapi_types.UUID, body PatchMovieEditionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// PutMovieEditionWithBody request with any body
 	PutMovieEditionWithBody(ctx context.Context, uuid openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -330,6 +338,30 @@ func (c *Client) PutMovieWorkWithBody(ctx context.Context, uuid openapi_types.UU
 
 func (c *Client) PutMovieWork(ctx context.Context, uuid openapi_types.UUID, body PutMovieWorkJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewPutMovieWorkRequest(c.Server, uuid, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PatchMovieEditionWithBody(ctx context.Context, uuid openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPatchMovieEditionRequestWithBody(c.Server, uuid, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PatchMovieEdition(ctx context.Context, uuid openapi_types.UUID, body PatchMovieEditionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPatchMovieEditionRequest(c.Server, uuid, body)
 	if err != nil {
 		return nil, err
 	}
@@ -620,6 +652,53 @@ func NewPutMovieWorkRequestWithBody(server string, uuid openapi_types.UUID, cont
 	return req, nil
 }
 
+// NewPatchMovieEditionRequest calls the generic PatchMovieEdition builder with application/json body
+func NewPatchMovieEditionRequest(server string, uuid openapi_types.UUID, body PatchMovieEditionJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPatchMovieEditionRequestWithBody(server, uuid, "application/json", bodyReader)
+}
+
+// NewPatchMovieEditionRequestWithBody generates requests for PatchMovieEdition with any type of body
+func NewPatchMovieEditionRequestWithBody(server string, uuid openapi_types.UUID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "uuid", runtime.ParamLocationPath, uuid)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/works/%s/movie_edition", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PATCH", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewPutMovieEditionRequest calls the generic PutMovieEdition builder with application/json body
 func NewPutMovieEditionRequest(server string, uuid openapi_types.UUID, body PutMovieEditionJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -735,6 +814,11 @@ type ClientWithResponsesInterface interface {
 	PutMovieWorkWithBodyWithResponse(ctx context.Context, uuid openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutMovieWorkResponse, error)
 
 	PutMovieWorkWithResponse(ctx context.Context, uuid openapi_types.UUID, body PutMovieWorkJSONRequestBody, reqEditors ...RequestEditorFn) (*PutMovieWorkResponse, error)
+
+	// PatchMovieEditionWithBodyWithResponse request with any body
+	PatchMovieEditionWithBodyWithResponse(ctx context.Context, uuid openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PatchMovieEditionResponse, error)
+
+	PatchMovieEditionWithResponse(ctx context.Context, uuid openapi_types.UUID, body PatchMovieEditionJSONRequestBody, reqEditors ...RequestEditorFn) (*PatchMovieEditionResponse, error)
 
 	// PutMovieEditionWithBodyWithResponse request with any body
 	PutMovieEditionWithBodyWithResponse(ctx context.Context, uuid openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutMovieEditionResponse, error)
@@ -889,6 +973,31 @@ func (r PutMovieWorkResponse) StatusCode() int {
 	return 0
 }
 
+type PatchMovieEditionResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON400      *Error
+	JSON404      *Error
+	JSON409      *Error
+	JSON500      *Error
+}
+
+// Status returns HTTPResponse.Status
+func (r PatchMovieEditionResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PatchMovieEditionResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type PutMovieEditionResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -997,6 +1106,23 @@ func (c *ClientWithResponses) PutMovieWorkWithResponse(ctx context.Context, uuid
 		return nil, err
 	}
 	return ParsePutMovieWorkResponse(rsp)
+}
+
+// PatchMovieEditionWithBodyWithResponse request with arbitrary body returning *PatchMovieEditionResponse
+func (c *ClientWithResponses) PatchMovieEditionWithBodyWithResponse(ctx context.Context, uuid openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PatchMovieEditionResponse, error) {
+	rsp, err := c.PatchMovieEditionWithBody(ctx, uuid, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePatchMovieEditionResponse(rsp)
+}
+
+func (c *ClientWithResponses) PatchMovieEditionWithResponse(ctx context.Context, uuid openapi_types.UUID, body PatchMovieEditionJSONRequestBody, reqEditors ...RequestEditorFn) (*PatchMovieEditionResponse, error) {
+	rsp, err := c.PatchMovieEdition(ctx, uuid, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePatchMovieEditionResponse(rsp)
 }
 
 // PutMovieEditionWithBodyWithResponse request with arbitrary body returning *PutMovieEditionResponse
@@ -1277,6 +1403,53 @@ func ParsePutMovieWorkResponse(rsp *http.Response) (*PutMovieWorkResponse, error
 	return response, nil
 }
 
+// ParsePatchMovieEditionResponse parses an HTTP response from a PatchMovieEditionWithResponse call
+func ParsePatchMovieEditionResponse(rsp *http.Response) (*PatchMovieEditionResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PatchMovieEditionResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParsePutMovieEditionResponse parses an HTTP response from a PutMovieEditionWithResponse call
 func ParsePutMovieEditionResponse(rsp *http.Response) (*PutMovieEditionResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -1337,6 +1510,9 @@ type ServerInterface interface {
 	// Add a movie work with the given uuid.
 	// (PUT /works/{uuid}/movie)
 	PutMovieWork(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID)
+	// Update a movie edition work with the given uuid.
+	// (PATCH /works/{uuid}/movie_edition)
+	PatchMovieEdition(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID)
 	// Create (or replace) a movie edition work with the given uuid.
 	// (PUT /works/{uuid}/movie_edition)
 	PutMovieEdition(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID)
@@ -1501,6 +1677,31 @@ func (siw *ServerInterfaceWrapper) PutMovieWork(w http.ResponseWriter, r *http.R
 	handler.ServeHTTP(w, r)
 }
 
+// PatchMovieEdition operation middleware
+func (siw *ServerInterfaceWrapper) PatchMovieEdition(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "uuid" -------------
+	var uuid openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "uuid", r.PathValue("uuid"), &uuid, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "uuid", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PatchMovieEdition(w, r, uuid)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // PutMovieEdition operation middleware
 func (siw *ServerInterfaceWrapper) PutMovieEdition(w http.ResponseWriter, r *http.Request) {
 
@@ -1652,6 +1853,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc("GET "+options.BaseURL+"/works/{uuid}", wrapper.GetWork)
 	m.HandleFunc("PATCH "+options.BaseURL+"/works/{uuid}/movie", wrapper.PatchMovieWork)
 	m.HandleFunc("PUT "+options.BaseURL+"/works/{uuid}/movie", wrapper.PutMovieWork)
+	m.HandleFunc("PATCH "+options.BaseURL+"/works/{uuid}/movie_edition", wrapper.PatchMovieEdition)
 	m.HandleFunc("PUT "+options.BaseURL+"/works/{uuid}/movie_edition", wrapper.PutMovieEdition)
 
 	return m
@@ -1954,6 +2156,59 @@ func (response PutMovieWork500JSONResponse) VisitPutMovieWorkResponse(w http.Res
 	return json.NewEncoder(w).Encode(response)
 }
 
+type PatchMovieEditionRequestObject struct {
+	Uuid openapi_types.UUID `json:"uuid"`
+	Body *PatchMovieEditionJSONRequestBody
+}
+
+type PatchMovieEditionResponseObject interface {
+	VisitPatchMovieEditionResponse(w http.ResponseWriter) error
+}
+
+type PatchMovieEdition200Response struct {
+}
+
+func (response PatchMovieEdition200Response) VisitPatchMovieEditionResponse(w http.ResponseWriter) error {
+	w.WriteHeader(200)
+	return nil
+}
+
+type PatchMovieEdition400JSONResponse Error
+
+func (response PatchMovieEdition400JSONResponse) VisitPatchMovieEditionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PatchMovieEdition404JSONResponse Error
+
+func (response PatchMovieEdition404JSONResponse) VisitPatchMovieEditionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PatchMovieEdition409JSONResponse Error
+
+func (response PatchMovieEdition409JSONResponse) VisitPatchMovieEditionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PatchMovieEdition500JSONResponse Error
+
+func (response PatchMovieEdition500JSONResponse) VisitPatchMovieEditionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type PutMovieEditionRequestObject struct {
 	Uuid openapi_types.UUID `json:"uuid"`
 	Body *PutMovieEditionJSONRequestBody
@@ -2026,6 +2281,9 @@ type StrictServerInterface interface {
 	// Add a movie work with the given uuid.
 	// (PUT /works/{uuid}/movie)
 	PutMovieWork(ctx context.Context, request PutMovieWorkRequestObject) (PutMovieWorkResponseObject, error)
+	// Update a movie edition work with the given uuid.
+	// (PATCH /works/{uuid}/movie_edition)
+	PatchMovieEdition(ctx context.Context, request PatchMovieEditionRequestObject) (PatchMovieEditionResponseObject, error)
 	// Create (or replace) a movie edition work with the given uuid.
 	// (PUT /works/{uuid}/movie_edition)
 	PutMovieEdition(ctx context.Context, request PutMovieEditionRequestObject) (PutMovieEditionResponseObject, error)
@@ -2244,6 +2502,39 @@ func (sh *strictHandler) PutMovieWork(w http.ResponseWriter, r *http.Request, uu
 	}
 }
 
+// PatchMovieEdition operation middleware
+func (sh *strictHandler) PatchMovieEdition(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID) {
+	var request PatchMovieEditionRequestObject
+
+	request.Uuid = uuid
+
+	var body PatchMovieEditionJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.PatchMovieEdition(ctx, request.(PatchMovieEditionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PatchMovieEdition")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(PatchMovieEditionResponseObject); ok {
+		if err := validResponse.VisitPatchMovieEditionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // PutMovieEdition operation middleware
 func (sh *strictHandler) PutMovieEdition(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID) {
 	var request PutMovieEditionRequestObject
@@ -2280,33 +2571,34 @@ func (sh *strictHandler) PutMovieEdition(w http.ResponseWriter, r *http.Request,
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"H4sIAAAAAAAC/+xab2/TvBb/KpbvlS5IXf+tG9B3uxSu+mKA2HrRI0DIjU8bg2MH2+moUL/7I9tJmjRp",
+	"m26wpxN7RUmOff7+zu/Y2U8cyCiWAoTRePgT6yCEiLifI6YD+y8FHSgWGyYFHuIRGMK4RmQqE4MIokwH",
+	"SMtEBdBGaCwCnlCgiM2QCSF9gZhOJdu4hWMlY1CGgdNCOH/NOOgLSoFW1Y0FZQExoNFNCCYEhQjnaGZX",
+	"oJmSkdPibAjJAtAUQCDitmph+EGimAMeGpVAC4uEczJd/98sY8BDPJWSAxF41cJSsfmIqTckgqolbxWb",
+	"M0E4okxBYKRaIkEiQHKW21DUiS+XNoCjTBhvNUAbxcTc6o+JCauKXXiW2kCErIANhIK130wjLm2ISi7j",
+	"jiC6EwFlpHOwJav8iZx+hcBY214pJZU1rpy+QNKaWDlh5N4VbXrz9vrL67eTNyNc43wEWpP51s2y18X9",
+	"3kNaX0IaNJOJoLjOFwXfE6ZsdX3MtXyucdEGen/B29rLC35XvVvBar03y3FaVHaLhlntRHLBoB19W9wu",
+	"v5d2+XbvdQwBm7EAGYmcJnQj1TddA3n73AfAW1SJgAIORMNfQFRV33v/Ei2BqCwKbp9iGPrdXnerk0wY",
+	"mIOyPhlm6jJ6bR9v3RyPRQBetAFkTUSn45q+dR0CciFFI2LI1Lr05PpyNH2KGAVh2IyBQjOptjj4rN89",
+	"2+/h1jy+oszbsa+Y87SCX2GjkiVuS2pDkuc2W1XNcfri2llXic0yLoc/1/4E2vN2C33CWVn/R6OXifmE",
+	"7bPrEIhRLCD8E35aylhZ+nb1f+WQW21wNGXBfyuY4SH+V2fNl52ULDuOKVctPEsbyC5Z12RWLZwkrKZs",
+	"JoJ9T6CuRnxnKbnd75/C4Oz82Qk8fzE96fXp6QkZnJ2fDPrn571B79mg2+3hFp5JFRGDh15lTQ3btE4S",
+	"RnUN6bkfhCOiFFnapLkamEzGI42I1jJglnnQDTMhMiHTNXZ+xL39hnZxCw/2i53axs0MRM7WvZ6lD5zx",
+	"FSpwi+p44INU36qFEGUNcld2fRe1bLYBw72LMtlVC/sQNs5Iyjk7cmJzVs5Iw9I53S/Wv0tGDofBpitN",
+	"a2uPYc1Kw4oxMZNVgy/ejZ2JERFkzsQcLRgF6TkSEUHTJGmckxL+v5N4SQzhco6uQC2Yw80ClPab9trd",
+	"dtfNpTEIEjM8xKftbvsU+0nRBbyTbtz5aW1e2UdzMHW8ahIlbOf2jQ55n/K4ztkChKsh7PQpYhdaZsP/",
+	"A3OVgTomikRgQGk8/FjJ2mQ8yvp6WpRGIgVGMVjY1cxKuQGohYUbsrN0rIPvG7aHRoOKWn22i3UshfYw",
+	"7Xe7fi4VBoQLBIljbs8QTIrOV+3huN5/FzBTt13ey65eJUEAWs8SjjLtNlGDX6jcD9w1usdiQTijLlko",
+	"DY/TPfj9uq825+1VC5/dj9MGlG17GtQCFIJUsIV1EkVELX2h2pHGmzhd+mq2Ihsg6WScHic1SLmgVKMn",
+	"UiEFMScB6KflU+66K1GrZA943iXGTgeHA6io0Uh7pv2dAPqegDb/lXT5yzLpZ6JyY7WmrerxujGmFpxP",
+	"YuroTOeQ4445+t3e7oXuGqCy7F4hmgbW631xb/BcM7+rKMIVELpE8INp4+mIaYfh7FLmmFB8QWkRfpvo",
+	"S30rgq5dC/JsGG8O8sLJ/mCQ27H+cJAXNT5EkPvDzC1B/rrg/EEgLy58BHkDkPubqCMHeREL20HuJurm",
+	"w649yh026n7wB4zGEHbn4Yc95jqXH4fcXLcrmmMecV3NlQbcIiw6+U1FTExQc9k8cc12fYvnb2wPIjy7",
+	"sbu2uC1cfMN/WGyXXu7cku4u17Hexnb/HG3dF6o2SKsEsnshzzorcp5MP1gcE+A9VstQ3WBHCwJn9PZJ",
+	"9w5IT8ydcP7gRtrfDvLakdav+wOH2To87hpljxCidpZtgM96mv4C628EDek6+1h2F9rOvjb8Scydf2G5",
+	"E7az6D9y+BFz+PrD9BFzeQnHB3H6SwV2o40D9MaudRtuY/c7tIObkAVhzaf8G8Y5mkL+x1iP3eLAYSBb",
+	"+jgUNBsKjhPzjaC6Y2iwm7nd6/A4ggVwGUcgTGoDbuFEcTzEoTHxsNPhMiA8lNoMn3efd/Hq8+rvAAAA",
+	"//8LwXwd8SkAAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

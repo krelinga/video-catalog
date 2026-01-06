@@ -33,3 +33,7 @@ func (s *Server) PutFileSource(ctx context.Context, request vcrest.PutFileSource
 func (s *Server) PutMovieEdition(ctx context.Context, request vcrest.PutMovieEditionRequestObject) (vcrest.PutMovieEditionResponseObject, error) {
 	return nil, fmt.Errorf("not implemented")
 }
+
+func (s *Server) PatchMovieEdition(ctx context.Context, request vcrest.PatchMovieEditionRequestObject) (vcrest.PatchMovieEditionResponseObject, error) {
+	return nil, fmt.Errorf("not implemented")
+}
