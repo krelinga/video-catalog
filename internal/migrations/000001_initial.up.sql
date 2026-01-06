@@ -14,13 +14,25 @@ CREATE TABLE sources (
     body JSONB NOT NULL CHECK (body <> '{}'::jsonb)
 );
 
--- Create links table
-CREATE TABLE links (
-    source_uuid UUID NOT NULL REFERENCES sources(uuid) ON DELETE CASCADE,
-    work_uuid UUID NOT NULL REFERENCES works(uuid) ON DELETE CASCADE,
-    PRIMARY KEY (source_uuid, work_uuid)
+-- Create plans table
+CREATE TABLE plans (
+    uuid UUID PRIMARY KEY,
+    kind VARCHAR NOT NULL CHECK (kind <> ''),
+    body JSONB NOT NULL CHECK (body <> '{}'::jsonb)
 );
 
--- Create indices on links table for efficient queries
-CREATE INDEX idx_links_source_uuid ON links(source_uuid);
-CREATE INDEX idx_links_work_uuid ON links(work_uuid);
+-- Create plan_inputs table
+CREATE TABLE plan_inputs (
+    plan_uuid UUID NOT NULL REFERENCES plans(uuid) ON DELETE CASCADE,
+    source_uuid UUID NOT NULL REFERENCES sources(uuid) ON DELETE CASCADE,
+    ordinal INT NOT NULL,
+    PRIMARY KEY (plan_uuid, source_uuid, ordinal)
+);
+
+-- Create plan_outputs table
+CREATE TABLE plan_outputs (
+    plan_uuid UUID NOT NULL REFERENCES plans(uuid) ON DELETE CASCADE,
+    work_uuid UUID NOT NULL REFERENCES works(uuid) ON DELETE CASCADE,
+    ordinal INT NOT NULL,
+    PRIMARY KEY (plan_uuid, work_uuid, ordinal)
+);

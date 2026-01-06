@@ -1,9 +1,11 @@
--- Drop indices on links table
-DROP INDEX IF EXISTS idx_links_work_uuid;
-DROP INDEX IF EXISTS idx_links_source_uuid;
+-- Drop plan_outputs table
+DROP TABLE IF EXISTS plan_outputs;
 
--- Drop links table
-DROP TABLE IF EXISTS links;
+-- Drop plan_inputs table
+DROP TABLE IF EXISTS plan_inputs;
+
+-- Drop plans table
+DROP TABLE IF EXISTS plans;
 
 -- Drop sources table
 DROP TABLE IF EXISTS sources;
