@@ -13,7 +13,7 @@ import (
 )
 
 // PutMovieWork adds or updates a movie work with the given UUID
-func (s *Server) PutMovieWork(ctx context.Context, request vcrest.PutMovieWorkRequestObject) (outResp vcrest.PutMovieWorkResponseObject, outErr error) {
+func (s *Server) PutMovieWork(ctx context.Context, request vcrest.PutMovieWorkRequestObject) (outResp vcrest.PutMovieWorkResponseObject, _ error) {
 	// Validate request.
 	requestUuid, err := uuid.Parse(request.Uuid.String())
 	if err != nil {
@@ -28,136 +28,57 @@ func (s *Server) PutMovieWork(ctx context.Context, request vcrest.PutMovieWorkRe
 		}
 		return
 	}
-
-	// Start transaction
-	txn, err := s.Pool.Begin(ctx)
-	if err != nil {
-		outResp = vcrest.PutMovieWork500JSONResponse{
-			Message: fmt.Sprintf("failed to begin transaction: %v", err),
-		}
-		return
-	}
-	defer txn.Rollback(ctx)
-
-	// Get existing work if it exists
-	var exists bool
-	var kind internal.WorkKind
-	var bodyRaw json.RawMessage
-	err = txn.QueryRow(ctx, `
-		SELECT kind, body
-		FROM works
-		WHERE uuid = $1
-	`, requestUuid).Scan(&kind, &bodyRaw)
-	if err == nil {
-		exists = true
-	} else if !errors.Is(err, pgx.ErrNoRows) {
-		outResp = vcrest.PutMovieWork500JSONResponse{
-			Message: fmt.Sprintf("failed to query existing work: %v", err),
-		}
-		return
-	}
-
 	var body internal.MovieWork
-	if exists {
-		if !kind.IsValid() {
-			outResp = vcrest.PutMovieWork500JSONResponse{
-				Message: fmt.Sprintf("existing work has invalid kind: %q", kind),
-			}
-			return
+	if !request.Body.Title.IsSpecified() || request.Body.Title.IsNull() || request.Body.Title.MustGet() == "" {
+		outResp = vcrest.PutMovieWork400JSONResponse{
+			Message: "non-empty title is required",
 		}
-		if kind != internal.WorkKindMovie {
-			outResp = vcrest.PutMovieWork409JSONResponse{
-				Message: fmt.Sprintf("work kind mismatch: existing kind is %q, but request is for %q", kind, internal.WorkKindMovie),
-			}
-			return
-		}
-		if err := json.Unmarshal(bodyRaw, &body); err != nil {
-			outResp = vcrest.PutMovieWork500JSONResponse{
-				Message: fmt.Sprintf("failed to unmarshal existing work body: %v", err),
-			}
-			return
-		}
+		return
 	} else {
-		kind = internal.WorkKindMovie
-	}
-
-	// Update fields
-	if request.Body.Title.IsSpecified() {
-		if request.Body.Title.IsNull() || request.Body.Title.MustGet() == "" {
-			outResp = vcrest.PutMovieWork400JSONResponse{
-				Message: "title cannot be null or empty",
-			}
-			return
-		}
 		body.Title = request.Body.Title.MustGet()
 	}
-	if request.Body.ReleaseYear.IsSpecified() {
-		if request.Body.ReleaseYear.IsNull() {
-			body.ReleaseYear = nil
-		} else {
-			ry := request.Body.ReleaseYear.MustGet()
-			body.ReleaseYear = &ry
-		}
+	if request.Body.ReleaseYear.IsSpecified() && !request.Body.ReleaseYear.IsNull() {
+		ry := request.Body.ReleaseYear.MustGet()
+		body.ReleaseYear = &ry
 	}
-	if request.Body.TmdbId.IsSpecified() {
-		if request.Body.TmdbId.IsNull() {
-			body.TmdbId = nil
-		} else {
-			tid := request.Body.TmdbId.MustGet()
-			body.TmdbId = &tid
-		}
+	if request.Body.TmdbId.IsSpecified() && !request.Body.TmdbId.IsNull() {
+		tid := request.Body.TmdbId.MustGet()
+		body.TmdbId = &tid
 	}
 
-	// Marshal body
-	bodyBytes, err := json.Marshal(body)
+	bodyRaw, err := json.Marshal(body)
 	if err != nil {
 		outResp = vcrest.PutMovieWork500JSONResponse{
-			Message: fmt.Sprintf("failed to marshal work body: %v", err),
+			Message: fmt.Sprintf("failed to marshal database body: %v", err),
 		}
 		return
 	}
-	bodyRaw = json.RawMessage(bodyBytes)
 
-	// Insert or update work
-	if exists {
-		_, err = txn.Exec(ctx, `
-			UPDATE works
-			SET body = $2
-			WHERE uuid = $1
-		`, requestUuid, bodyRaw)
-		if err != nil {
-			outResp = vcrest.PutMovieWork500JSONResponse{
-				Message: fmt.Sprintf("failed to update existing work: %v", err),
-			}
-			return
+	row := s.Pool.QueryRow(ctx, `
+		INSERT INTO works (uuid, kind, body)
+		VALUES ($1, $2, $3)
+		ON CONFLICT (uuid) DO UPDATE
+		SET body = EXCLUDED.body
+		WHERE works.kind = $2
+		RETURNING xmax`,
+		requestUuid, internal.WorkKindMovie, bodyRaw)
+	var xmax uint32
+	if err := row.Scan(&xmax); errors.Is(err, pgx.ErrNoRows) {
+		outResp = vcrest.PutMovieWork409JSONResponse{
+			Message: "work with given UUID already exists with different kind",
 		}
-	} else {
-		_, err = txn.Exec(ctx, `
-			INSERT INTO works (uuid, kind, body)
-			VALUES ($1, $2, $3)
-		`, requestUuid, kind, bodyRaw)
-		if err != nil {
-			outResp = vcrest.PutMovieWork500JSONResponse{
-				Message: fmt.Sprintf("failed to insert new work: %v", err),
-			}
-			return
-		}
-	}
-
-	// Commit transaction
-	if err := txn.Commit(ctx); err != nil {
+		return
+	} else if err != nil {
 		outResp = vcrest.PutMovieWork500JSONResponse{
-			Message: fmt.Sprintf("failed to commit transaction: %v", err),
+			Message: fmt.Sprintf("failed to insert/update work: %v", err),
 		}
 		return
 	}
 
-	// Success
-	if exists {
-		outResp = vcrest.PutMovieWork200Response{}
-	} else {
+	if xmax == 0 {
 		outResp = vcrest.PutMovieWork201Response{}
+	} else {
+		outResp = vcrest.PutMovieWork200Response{}
 	}
-
-	return 
+	return
 }
