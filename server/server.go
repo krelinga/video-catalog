@@ -14,6 +14,11 @@ type Server struct {
 	Pool *pgxpool.Pool
 }
 
+// PatchMovieWork updates fields of a movie work with the given UUID
+func (s *Server) PatchMovieWork(ctx context.Context, request vcrest.PatchMovieWorkRequestObject) (vcrest.PatchMovieWorkResponseObject, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
 // GetSource retrieves a source by UUID
 func (s *Server) GetSource(ctx context.Context, request vcrest.GetSourceRequestObject) (vcrest.GetSourceResponseObject, error) {
 	return nil, fmt.Errorf("not implemented")
