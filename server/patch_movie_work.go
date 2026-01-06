@@ -30,7 +30,7 @@ func (s *Server) PatchMovieWork(ctx context.Context, request vcrest.PatchMovieWo
 	}
 	if request.Body.Title.IsSpecified() && (request.Body.Title.IsNull() || request.Body.Title.MustGet() == "") {
 		outResp = vcrest.PatchMovieWork400JSONResponse{
-			Message: "cannot update title to be nil or empty",
+			Message: "cannot update title to be null or empty",
 		}
 		return
 	}
