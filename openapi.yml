@@ -304,6 +304,51 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+    patch:
+      summary: Update a disc source with the given uuid.
+      description: Updates a disc source identified by the given UUID
+      operationId: patchDiscSource
+      parameters:
+        - name: uuid
+          in: path
+          description: UUID of the disc source to update
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Disc'
+      responses:
+        '200':
+          description: Disc source updated successfully
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Source with this UUID not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Source with this UUID is not a disc.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /sources/{uuid}/file:
     put:
@@ -337,6 +382,51 @@ paths:
                 $ref: '#/components/schemas/Error'
         '409':
           description: Source with this UUID already exists and is not a file.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    patch:
+      summary: Update a file source with the given uuid.
+      description: Updates a file source identified by the given UUID
+      operationId: patchFileSource
+      parameters:
+        - name: uuid
+          in: path
+          description: UUID of the file source to update
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/File'
+      responses:
+        '200':
+          description: File source updated successfully
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Source with this UUID not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Source with this UUID is not a file.
           content:
             application/json:
               schema:
