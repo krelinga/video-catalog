@@ -18,3 +18,28 @@ type Server struct {
 func (s *Server) GetSource(ctx context.Context, request vcrest.GetSourceRequestObject) (vcrest.GetSourceResponseObject, error) {
 	return nil, fmt.Errorf("not implemented")
 }
+
+// GetPlan retrieves a plan by UUID
+func (s *Server) GetPlan(ctx context.Context, request vcrest.GetPlanRequestObject) (vcrest.GetPlanResponseObject, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+// PutDirectPlan adds or updates a direct plan with the given UUID
+func (s *Server) PutDirectPlan(ctx context.Context, request vcrest.PutDirectPlanRequestObject) (vcrest.PutDirectPlanResponseObject, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+// PatchDirectPlan updates fields of a direct plan with the given UUID
+func (s *Server) PatchDirectPlan(ctx context.Context, request vcrest.PatchDirectPlanRequestObject) (vcrest.PatchDirectPlanResponseObject, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+// PutChapterRangePlan adds or updates a chapter range plan with the given UUID
+func (s *Server) PutChapterRangePlan(ctx context.Context, request vcrest.PutChapterRangePlanRequestObject) (vcrest.PutChapterRangePlanResponseObject, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+// PatchChapterRangePlan updates fields of a chapter range plan with the given UUID
+func (s *Server) PatchChapterRangePlan(ctx context.Context, request vcrest.PatchChapterRangePlanRequestObject) (vcrest.PatchChapterRangePlanResponseObject, error) {
+	return nil, fmt.Errorf("not implemented")
+}

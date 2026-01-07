@@ -25,13 +25,28 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
-// ChapterRange Represents a range of chapters in a video file
-type ChapterRange struct {
+// ChapterRangePlan Represents a plan for producing a work from specific chapters of a source file.
+type ChapterRangePlan struct {
 	// EndChapter Ending chapter number (inclusive).  If null, ends at the end of the file.
 	EndChapter nullable.Nullable[int32] `json:"endChapter,omitempty"`
 
+	// SourceUuid UUID of the source file containing the chapters
+	SourceUuid nullable.Nullable[openapi_types.UUID] `json:"sourceUuid,omitempty"`
+
 	// StartChapter Starting chapter number (inclusive).  If null, starts from the beginning of the file.
 	StartChapter nullable.Nullable[int32] `json:"startChapter,omitempty"`
+
+	// WorkUuid UUID of the work that the chapters comprise.
+	WorkUuid nullable.Nullable[openapi_types.UUID] `json:"workUuid,omitempty"`
+}
+
+// DirectPlan Represents a plan for producing a work directly from a source file without modification.
+type DirectPlan struct {
+	// SourceUuid UUID of the source file
+	SourceUuid nullable.Nullable[openapi_types.UUID] `json:"sourceUuid,omitempty"`
+
+	// WorkUuid UUID of the work to be produced.
+	WorkUuid nullable.Nullable[openapi_types.UUID] `json:"workUuid,omitempty"`
 }
 
 // Disc Details about a disc source.  Included if the source is a disc.
@@ -81,17 +96,11 @@ type MovieEdition struct {
 
 // Plan defines model for Plan.
 type Plan struct {
-	// ChapterRange Represents a range of chapters in a video file
-	ChapterRange *ChapterRange `json:"chapterRange,omitempty"`
+	// ChapterRange Represents a plan for producing a work from specific chapters of a source file.
+	ChapterRange *ChapterRangePlan `json:"chapterRange,omitempty"`
 
-	// Direct Indicates if the plan is direct
-	Direct *bool `json:"direct,omitempty"`
-
-	// Inputs Array of Source UUIDs that this plan will read from.
-	Inputs []openapi_types.UUID `json:"inputs,omitempty"`
-
-	// Outputs Array of Work UUIDs that this plan will produce.
-	Outputs []openapi_types.UUID `json:"outputs,omitempty"`
+	// Direct Represents a plan for producing a work directly from a source file without modification.
+	Direct *DirectPlan `json:"direct,omitempty"`
 
 	// Uuid Unique identifier for the plan
 	Uuid openapi_types.UUID `json:"uuid"`
@@ -120,6 +129,28 @@ type Work struct {
 	// Uuid Unique identifier for the work
 	Uuid openapi_types.UUID `json:"uuid"`
 }
+
+// PatchDirectPlanJSONBody defines parameters for PatchDirectPlan.
+type PatchDirectPlanJSONBody struct {
+	Direct *bool `json:"direct,omitempty"`
+}
+
+// PutDirectPlanJSONBody defines parameters for PutDirectPlan.
+type PutDirectPlanJSONBody struct {
+	Direct *bool `json:"direct,omitempty"`
+}
+
+// PatchChapterRangePlanJSONRequestBody defines body for PatchChapterRangePlan for application/json ContentType.
+type PatchChapterRangePlanJSONRequestBody = ChapterRangePlan
+
+// PutChapterRangePlanJSONRequestBody defines body for PutChapterRangePlan for application/json ContentType.
+type PutChapterRangePlanJSONRequestBody = ChapterRangePlan
+
+// PatchDirectPlanJSONRequestBody defines body for PatchDirectPlan for application/json ContentType.
+type PatchDirectPlanJSONRequestBody PatchDirectPlanJSONBody
+
+// PutDirectPlanJSONRequestBody defines body for PutDirectPlan for application/json ContentType.
+type PutDirectPlanJSONRequestBody PutDirectPlanJSONBody
 
 // PatchDiscSourceJSONRequestBody defines body for PatchDiscSource for application/json ContentType.
 type PatchDiscSourceJSONRequestBody = Disc
@@ -218,6 +249,29 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 
 // The interface specification for the client above.
 type ClientInterface interface {
+	// GetPlan request
+	GetPlan(ctx context.Context, uuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PatchChapterRangePlanWithBody request with any body
+	PatchChapterRangePlanWithBody(ctx context.Context, uuid openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PatchChapterRangePlan(ctx context.Context, uuid openapi_types.UUID, body PatchChapterRangePlanJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PutChapterRangePlanWithBody request with any body
+	PutChapterRangePlanWithBody(ctx context.Context, uuid openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PutChapterRangePlan(ctx context.Context, uuid openapi_types.UUID, body PutChapterRangePlanJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PatchDirectPlanWithBody request with any body
+	PatchDirectPlanWithBody(ctx context.Context, uuid openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PatchDirectPlan(ctx context.Context, uuid openapi_types.UUID, body PatchDirectPlanJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PutDirectPlanWithBody request with any body
+	PutDirectPlanWithBody(ctx context.Context, uuid openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PutDirectPlan(ctx context.Context, uuid openapi_types.UUID, body PutDirectPlanJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetSource request
 	GetSource(ctx context.Context, uuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -263,6 +317,114 @@ type ClientInterface interface {
 	PutMovieEditionWithBody(ctx context.Context, uuid openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	PutMovieEdition(ctx context.Context, uuid openapi_types.UUID, body PutMovieEditionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+}
+
+func (c *Client) GetPlan(ctx context.Context, uuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetPlanRequest(c.Server, uuid)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PatchChapterRangePlanWithBody(ctx context.Context, uuid openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPatchChapterRangePlanRequestWithBody(c.Server, uuid, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PatchChapterRangePlan(ctx context.Context, uuid openapi_types.UUID, body PatchChapterRangePlanJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPatchChapterRangePlanRequest(c.Server, uuid, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PutChapterRangePlanWithBody(ctx context.Context, uuid openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutChapterRangePlanRequestWithBody(c.Server, uuid, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PutChapterRangePlan(ctx context.Context, uuid openapi_types.UUID, body PutChapterRangePlanJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutChapterRangePlanRequest(c.Server, uuid, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PatchDirectPlanWithBody(ctx context.Context, uuid openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPatchDirectPlanRequestWithBody(c.Server, uuid, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PatchDirectPlan(ctx context.Context, uuid openapi_types.UUID, body PatchDirectPlanJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPatchDirectPlanRequest(c.Server, uuid, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PutDirectPlanWithBody(ctx context.Context, uuid openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutDirectPlanRequestWithBody(c.Server, uuid, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PutDirectPlan(ctx context.Context, uuid openapi_types.UUID, body PutDirectPlanJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutDirectPlanRequest(c.Server, uuid, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
 }
 
 func (c *Client) GetSource(ctx context.Context, uuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -479,6 +641,228 @@ func (c *Client) PutMovieEdition(ctx context.Context, uuid openapi_types.UUID, b
 		return nil, err
 	}
 	return c.Client.Do(req)
+}
+
+// NewGetPlanRequest generates requests for GetPlan
+func NewGetPlanRequest(server string, uuid openapi_types.UUID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "uuid", runtime.ParamLocationPath, uuid)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/plans/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPatchChapterRangePlanRequest calls the generic PatchChapterRangePlan builder with application/json body
+func NewPatchChapterRangePlanRequest(server string, uuid openapi_types.UUID, body PatchChapterRangePlanJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPatchChapterRangePlanRequestWithBody(server, uuid, "application/json", bodyReader)
+}
+
+// NewPatchChapterRangePlanRequestWithBody generates requests for PatchChapterRangePlan with any type of body
+func NewPatchChapterRangePlanRequestWithBody(server string, uuid openapi_types.UUID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "uuid", runtime.ParamLocationPath, uuid)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/plans/%s/chapter_range", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PATCH", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewPutChapterRangePlanRequest calls the generic PutChapterRangePlan builder with application/json body
+func NewPutChapterRangePlanRequest(server string, uuid openapi_types.UUID, body PutChapterRangePlanJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPutChapterRangePlanRequestWithBody(server, uuid, "application/json", bodyReader)
+}
+
+// NewPutChapterRangePlanRequestWithBody generates requests for PutChapterRangePlan with any type of body
+func NewPutChapterRangePlanRequestWithBody(server string, uuid openapi_types.UUID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "uuid", runtime.ParamLocationPath, uuid)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/plans/%s/chapter_range", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewPatchDirectPlanRequest calls the generic PatchDirectPlan builder with application/json body
+func NewPatchDirectPlanRequest(server string, uuid openapi_types.UUID, body PatchDirectPlanJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPatchDirectPlanRequestWithBody(server, uuid, "application/json", bodyReader)
+}
+
+// NewPatchDirectPlanRequestWithBody generates requests for PatchDirectPlan with any type of body
+func NewPatchDirectPlanRequestWithBody(server string, uuid openapi_types.UUID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "uuid", runtime.ParamLocationPath, uuid)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/plans/%s/direct", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PATCH", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewPutDirectPlanRequest calls the generic PutDirectPlan builder with application/json body
+func NewPutDirectPlanRequest(server string, uuid openapi_types.UUID, body PutDirectPlanJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPutDirectPlanRequestWithBody(server, uuid, "application/json", bodyReader)
+}
+
+// NewPutDirectPlanRequestWithBody generates requests for PutDirectPlan with any type of body
+func NewPutDirectPlanRequestWithBody(server string, uuid openapi_types.UUID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "uuid", runtime.ParamLocationPath, uuid)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/plans/%s/direct", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
 }
 
 // NewGetSourceRequest generates requests for GetSource
@@ -968,6 +1352,29 @@ func WithBaseURL(baseURL string) ClientOption {
 
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
+	// GetPlanWithResponse request
+	GetPlanWithResponse(ctx context.Context, uuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetPlanResponse, error)
+
+	// PatchChapterRangePlanWithBodyWithResponse request with any body
+	PatchChapterRangePlanWithBodyWithResponse(ctx context.Context, uuid openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PatchChapterRangePlanResponse, error)
+
+	PatchChapterRangePlanWithResponse(ctx context.Context, uuid openapi_types.UUID, body PatchChapterRangePlanJSONRequestBody, reqEditors ...RequestEditorFn) (*PatchChapterRangePlanResponse, error)
+
+	// PutChapterRangePlanWithBodyWithResponse request with any body
+	PutChapterRangePlanWithBodyWithResponse(ctx context.Context, uuid openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutChapterRangePlanResponse, error)
+
+	PutChapterRangePlanWithResponse(ctx context.Context, uuid openapi_types.UUID, body PutChapterRangePlanJSONRequestBody, reqEditors ...RequestEditorFn) (*PutChapterRangePlanResponse, error)
+
+	// PatchDirectPlanWithBodyWithResponse request with any body
+	PatchDirectPlanWithBodyWithResponse(ctx context.Context, uuid openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PatchDirectPlanResponse, error)
+
+	PatchDirectPlanWithResponse(ctx context.Context, uuid openapi_types.UUID, body PatchDirectPlanJSONRequestBody, reqEditors ...RequestEditorFn) (*PatchDirectPlanResponse, error)
+
+	// PutDirectPlanWithBodyWithResponse request with any body
+	PutDirectPlanWithBodyWithResponse(ctx context.Context, uuid openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutDirectPlanResponse, error)
+
+	PutDirectPlanWithResponse(ctx context.Context, uuid openapi_types.UUID, body PutDirectPlanJSONRequestBody, reqEditors ...RequestEditorFn) (*PutDirectPlanResponse, error)
+
 	// GetSourceWithResponse request
 	GetSourceWithResponse(ctx context.Context, uuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetSourceResponse, error)
 
@@ -1013,6 +1420,131 @@ type ClientWithResponsesInterface interface {
 	PutMovieEditionWithBodyWithResponse(ctx context.Context, uuid openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutMovieEditionResponse, error)
 
 	PutMovieEditionWithResponse(ctx context.Context, uuid openapi_types.UUID, body PutMovieEditionJSONRequestBody, reqEditors ...RequestEditorFn) (*PutMovieEditionResponse, error)
+}
+
+type GetPlanResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *Plan
+	JSON400      *Error
+	JSON404      *Error
+	JSON500      *Error
+}
+
+// Status returns HTTPResponse.Status
+func (r GetPlanResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetPlanResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PatchChapterRangePlanResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON400      *Error
+	JSON404      *Error
+	JSON409      *Error
+	JSON500      *Error
+}
+
+// Status returns HTTPResponse.Status
+func (r PatchChapterRangePlanResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PatchChapterRangePlanResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PutChapterRangePlanResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON400      *Error
+	JSON404      *Error
+	JSON409      *Error
+	JSON500      *Error
+}
+
+// Status returns HTTPResponse.Status
+func (r PutChapterRangePlanResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PutChapterRangePlanResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PatchDirectPlanResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON400      *Error
+	JSON404      *Error
+	JSON409      *Error
+	JSON500      *Error
+}
+
+// Status returns HTTPResponse.Status
+func (r PatchDirectPlanResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PatchDirectPlanResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PutDirectPlanResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON400      *Error
+	JSON404      *Error
+	JSON409      *Error
+	JSON500      *Error
+}
+
+// Status returns HTTPResponse.Status
+func (r PutDirectPlanResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PutDirectPlanResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
 }
 
 type GetSourceResponse struct {
@@ -1261,6 +1793,83 @@ func (r PutMovieEditionResponse) StatusCode() int {
 	return 0
 }
 
+// GetPlanWithResponse request returning *GetPlanResponse
+func (c *ClientWithResponses) GetPlanWithResponse(ctx context.Context, uuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetPlanResponse, error) {
+	rsp, err := c.GetPlan(ctx, uuid, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetPlanResponse(rsp)
+}
+
+// PatchChapterRangePlanWithBodyWithResponse request with arbitrary body returning *PatchChapterRangePlanResponse
+func (c *ClientWithResponses) PatchChapterRangePlanWithBodyWithResponse(ctx context.Context, uuid openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PatchChapterRangePlanResponse, error) {
+	rsp, err := c.PatchChapterRangePlanWithBody(ctx, uuid, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePatchChapterRangePlanResponse(rsp)
+}
+
+func (c *ClientWithResponses) PatchChapterRangePlanWithResponse(ctx context.Context, uuid openapi_types.UUID, body PatchChapterRangePlanJSONRequestBody, reqEditors ...RequestEditorFn) (*PatchChapterRangePlanResponse, error) {
+	rsp, err := c.PatchChapterRangePlan(ctx, uuid, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePatchChapterRangePlanResponse(rsp)
+}
+
+// PutChapterRangePlanWithBodyWithResponse request with arbitrary body returning *PutChapterRangePlanResponse
+func (c *ClientWithResponses) PutChapterRangePlanWithBodyWithResponse(ctx context.Context, uuid openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutChapterRangePlanResponse, error) {
+	rsp, err := c.PutChapterRangePlanWithBody(ctx, uuid, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutChapterRangePlanResponse(rsp)
+}
+
+func (c *ClientWithResponses) PutChapterRangePlanWithResponse(ctx context.Context, uuid openapi_types.UUID, body PutChapterRangePlanJSONRequestBody, reqEditors ...RequestEditorFn) (*PutChapterRangePlanResponse, error) {
+	rsp, err := c.PutChapterRangePlan(ctx, uuid, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutChapterRangePlanResponse(rsp)
+}
+
+// PatchDirectPlanWithBodyWithResponse request with arbitrary body returning *PatchDirectPlanResponse
+func (c *ClientWithResponses) PatchDirectPlanWithBodyWithResponse(ctx context.Context, uuid openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PatchDirectPlanResponse, error) {
+	rsp, err := c.PatchDirectPlanWithBody(ctx, uuid, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePatchDirectPlanResponse(rsp)
+}
+
+func (c *ClientWithResponses) PatchDirectPlanWithResponse(ctx context.Context, uuid openapi_types.UUID, body PatchDirectPlanJSONRequestBody, reqEditors ...RequestEditorFn) (*PatchDirectPlanResponse, error) {
+	rsp, err := c.PatchDirectPlan(ctx, uuid, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePatchDirectPlanResponse(rsp)
+}
+
+// PutDirectPlanWithBodyWithResponse request with arbitrary body returning *PutDirectPlanResponse
+func (c *ClientWithResponses) PutDirectPlanWithBodyWithResponse(ctx context.Context, uuid openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutDirectPlanResponse, error) {
+	rsp, err := c.PutDirectPlanWithBody(ctx, uuid, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutDirectPlanResponse(rsp)
+}
+
+func (c *ClientWithResponses) PutDirectPlanWithResponse(ctx context.Context, uuid openapi_types.UUID, body PutDirectPlanJSONRequestBody, reqEditors ...RequestEditorFn) (*PutDirectPlanResponse, error) {
+	rsp, err := c.PutDirectPlan(ctx, uuid, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutDirectPlanResponse(rsp)
+}
+
 // GetSourceWithResponse request returning *GetSourceResponse
 func (c *ClientWithResponses) GetSourceWithResponse(ctx context.Context, uuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetSourceResponse, error) {
 	rsp, err := c.GetSource(ctx, uuid, reqEditors...)
@@ -1413,6 +2022,241 @@ func (c *ClientWithResponses) PutMovieEditionWithResponse(ctx context.Context, u
 		return nil, err
 	}
 	return ParsePutMovieEditionResponse(rsp)
+}
+
+// ParseGetPlanResponse parses an HTTP response from a GetPlanWithResponse call
+func ParseGetPlanResponse(rsp *http.Response) (*GetPlanResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetPlanResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Plan
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePatchChapterRangePlanResponse parses an HTTP response from a PatchChapterRangePlanWithResponse call
+func ParsePatchChapterRangePlanResponse(rsp *http.Response) (*PatchChapterRangePlanResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PatchChapterRangePlanResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePutChapterRangePlanResponse parses an HTTP response from a PutChapterRangePlanWithResponse call
+func ParsePutChapterRangePlanResponse(rsp *http.Response) (*PutChapterRangePlanResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PutChapterRangePlanResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePatchDirectPlanResponse parses an HTTP response from a PatchDirectPlanWithResponse call
+func ParsePatchDirectPlanResponse(rsp *http.Response) (*PatchDirectPlanResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PatchDirectPlanResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePutDirectPlanResponse parses an HTTP response from a PutDirectPlanWithResponse call
+func ParsePutDirectPlanResponse(rsp *http.Response) (*PutDirectPlanResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PutDirectPlanResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	return response, nil
 }
 
 // ParseGetSourceResponse parses an HTTP response from a GetSourceWithResponse call
@@ -1859,6 +2703,21 @@ func ParsePutMovieEditionResponse(rsp *http.Response) (*PutMovieEditionResponse,
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// Get a plan by UUID
+	// (GET /plans/{uuid})
+	GetPlan(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID)
+	// Update a chapter range plan.
+	// (PATCH /plans/{uuid}/chapter_range)
+	PatchChapterRangePlan(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID)
+	// Create (or update) a chapter range plan.
+	// (PUT /plans/{uuid}/chapter_range)
+	PutChapterRangePlan(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID)
+	// Update a direct plan.
+	// (PATCH /plans/{uuid}/direct)
+	PatchDirectPlan(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID)
+	// Create (or update) a direct plan.
+	// (PUT /plans/{uuid}/direct)
+	PutDirectPlan(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID)
 	// Get a source by UUID
 	// (GET /sources/{uuid})
 	GetSource(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID)
@@ -1899,6 +2758,131 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// GetPlan operation middleware
+func (siw *ServerInterfaceWrapper) GetPlan(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "uuid" -------------
+	var uuid openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "uuid", r.PathValue("uuid"), &uuid, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "uuid", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPlan(w, r, uuid)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PatchChapterRangePlan operation middleware
+func (siw *ServerInterfaceWrapper) PatchChapterRangePlan(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "uuid" -------------
+	var uuid openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "uuid", r.PathValue("uuid"), &uuid, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "uuid", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PatchChapterRangePlan(w, r, uuid)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PutChapterRangePlan operation middleware
+func (siw *ServerInterfaceWrapper) PutChapterRangePlan(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "uuid" -------------
+	var uuid openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "uuid", r.PathValue("uuid"), &uuid, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "uuid", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PutChapterRangePlan(w, r, uuid)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PatchDirectPlan operation middleware
+func (siw *ServerInterfaceWrapper) PatchDirectPlan(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "uuid" -------------
+	var uuid openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "uuid", r.PathValue("uuid"), &uuid, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "uuid", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PatchDirectPlan(w, r, uuid)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PutDirectPlan operation middleware
+func (siw *ServerInterfaceWrapper) PutDirectPlan(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "uuid" -------------
+	var uuid openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "uuid", r.PathValue("uuid"), &uuid, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "uuid", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PutDirectPlan(w, r, uuid)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // GetSource operation middleware
 func (siw *ServerInterfaceWrapper) GetSource(w http.ResponseWriter, r *http.Request) {
@@ -2270,6 +3254,11 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 		ErrorHandlerFunc:   options.ErrorHandlerFunc,
 	}
 
+	m.HandleFunc("GET "+options.BaseURL+"/plans/{uuid}", wrapper.GetPlan)
+	m.HandleFunc("PATCH "+options.BaseURL+"/plans/{uuid}/chapter_range", wrapper.PatchChapterRangePlan)
+	m.HandleFunc("PUT "+options.BaseURL+"/plans/{uuid}/chapter_range", wrapper.PutChapterRangePlan)
+	m.HandleFunc("PATCH "+options.BaseURL+"/plans/{uuid}/direct", wrapper.PatchDirectPlan)
+	m.HandleFunc("PUT "+options.BaseURL+"/plans/{uuid}/direct", wrapper.PutDirectPlan)
 	m.HandleFunc("GET "+options.BaseURL+"/sources/{uuid}", wrapper.GetSource)
 	m.HandleFunc("PATCH "+options.BaseURL+"/sources/{uuid}/disc", wrapper.PatchDiscSource)
 	m.HandleFunc("PUT "+options.BaseURL+"/sources/{uuid}/disc", wrapper.PutDiscSource)
@@ -2282,6 +3271,278 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc("PUT "+options.BaseURL+"/works/{uuid}/movie_edition", wrapper.PutMovieEdition)
 
 	return m
+}
+
+type GetPlanRequestObject struct {
+	Uuid openapi_types.UUID `json:"uuid"`
+}
+
+type GetPlanResponseObject interface {
+	VisitGetPlanResponse(w http.ResponseWriter) error
+}
+
+type GetPlan200JSONResponse Plan
+
+func (response GetPlan200JSONResponse) VisitGetPlanResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetPlan400JSONResponse Error
+
+func (response GetPlan400JSONResponse) VisitGetPlanResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetPlan404JSONResponse Error
+
+func (response GetPlan404JSONResponse) VisitGetPlanResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetPlan500JSONResponse Error
+
+func (response GetPlan500JSONResponse) VisitGetPlanResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PatchChapterRangePlanRequestObject struct {
+	Uuid openapi_types.UUID `json:"uuid"`
+	Body *PatchChapterRangePlanJSONRequestBody
+}
+
+type PatchChapterRangePlanResponseObject interface {
+	VisitPatchChapterRangePlanResponse(w http.ResponseWriter) error
+}
+
+type PatchChapterRangePlan200Response struct {
+}
+
+func (response PatchChapterRangePlan200Response) VisitPatchChapterRangePlanResponse(w http.ResponseWriter) error {
+	w.WriteHeader(200)
+	return nil
+}
+
+type PatchChapterRangePlan400JSONResponse Error
+
+func (response PatchChapterRangePlan400JSONResponse) VisitPatchChapterRangePlanResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PatchChapterRangePlan404JSONResponse Error
+
+func (response PatchChapterRangePlan404JSONResponse) VisitPatchChapterRangePlanResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PatchChapterRangePlan409JSONResponse Error
+
+func (response PatchChapterRangePlan409JSONResponse) VisitPatchChapterRangePlanResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PatchChapterRangePlan500JSONResponse Error
+
+func (response PatchChapterRangePlan500JSONResponse) VisitPatchChapterRangePlanResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PutChapterRangePlanRequestObject struct {
+	Uuid openapi_types.UUID `json:"uuid"`
+	Body *PutChapterRangePlanJSONRequestBody
+}
+
+type PutChapterRangePlanResponseObject interface {
+	VisitPutChapterRangePlanResponse(w http.ResponseWriter) error
+}
+
+type PutChapterRangePlan200Response struct {
+}
+
+func (response PutChapterRangePlan200Response) VisitPutChapterRangePlanResponse(w http.ResponseWriter) error {
+	w.WriteHeader(200)
+	return nil
+}
+
+type PutChapterRangePlan201Response struct {
+}
+
+func (response PutChapterRangePlan201Response) VisitPutChapterRangePlanResponse(w http.ResponseWriter) error {
+	w.WriteHeader(201)
+	return nil
+}
+
+type PutChapterRangePlan400JSONResponse Error
+
+func (response PutChapterRangePlan400JSONResponse) VisitPutChapterRangePlanResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PutChapterRangePlan404JSONResponse Error
+
+func (response PutChapterRangePlan404JSONResponse) VisitPutChapterRangePlanResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PutChapterRangePlan409JSONResponse Error
+
+func (response PutChapterRangePlan409JSONResponse) VisitPutChapterRangePlanResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PutChapterRangePlan500JSONResponse Error
+
+func (response PutChapterRangePlan500JSONResponse) VisitPutChapterRangePlanResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PatchDirectPlanRequestObject struct {
+	Uuid openapi_types.UUID `json:"uuid"`
+	Body *PatchDirectPlanJSONRequestBody
+}
+
+type PatchDirectPlanResponseObject interface {
+	VisitPatchDirectPlanResponse(w http.ResponseWriter) error
+}
+
+type PatchDirectPlan200Response struct {
+}
+
+func (response PatchDirectPlan200Response) VisitPatchDirectPlanResponse(w http.ResponseWriter) error {
+	w.WriteHeader(200)
+	return nil
+}
+
+type PatchDirectPlan400JSONResponse Error
+
+func (response PatchDirectPlan400JSONResponse) VisitPatchDirectPlanResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PatchDirectPlan404JSONResponse Error
+
+func (response PatchDirectPlan404JSONResponse) VisitPatchDirectPlanResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PatchDirectPlan409JSONResponse Error
+
+func (response PatchDirectPlan409JSONResponse) VisitPatchDirectPlanResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PatchDirectPlan500JSONResponse Error
+
+func (response PatchDirectPlan500JSONResponse) VisitPatchDirectPlanResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PutDirectPlanRequestObject struct {
+	Uuid openapi_types.UUID `json:"uuid"`
+	Body *PutDirectPlanJSONRequestBody
+}
+
+type PutDirectPlanResponseObject interface {
+	VisitPutDirectPlanResponse(w http.ResponseWriter) error
+}
+
+type PutDirectPlan200Response struct {
+}
+
+func (response PutDirectPlan200Response) VisitPutDirectPlanResponse(w http.ResponseWriter) error {
+	w.WriteHeader(200)
+	return nil
+}
+
+type PutDirectPlan201Response struct {
+}
+
+func (response PutDirectPlan201Response) VisitPutDirectPlanResponse(w http.ResponseWriter) error {
+	w.WriteHeader(201)
+	return nil
+}
+
+type PutDirectPlan400JSONResponse Error
+
+func (response PutDirectPlan400JSONResponse) VisitPutDirectPlanResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PutDirectPlan404JSONResponse Error
+
+func (response PutDirectPlan404JSONResponse) VisitPutDirectPlanResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PutDirectPlan409JSONResponse Error
+
+func (response PutDirectPlan409JSONResponse) VisitPutDirectPlanResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PutDirectPlan500JSONResponse Error
+
+func (response PutDirectPlan500JSONResponse) VisitPutDirectPlanResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
 }
 
 type GetSourceRequestObject struct {
@@ -2794,6 +4055,21 @@ func (response PutMovieEdition500JSONResponse) VisitPutMovieEditionResponse(w ht
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// Get a plan by UUID
+	// (GET /plans/{uuid})
+	GetPlan(ctx context.Context, request GetPlanRequestObject) (GetPlanResponseObject, error)
+	// Update a chapter range plan.
+	// (PATCH /plans/{uuid}/chapter_range)
+	PatchChapterRangePlan(ctx context.Context, request PatchChapterRangePlanRequestObject) (PatchChapterRangePlanResponseObject, error)
+	// Create (or update) a chapter range plan.
+	// (PUT /plans/{uuid}/chapter_range)
+	PutChapterRangePlan(ctx context.Context, request PutChapterRangePlanRequestObject) (PutChapterRangePlanResponseObject, error)
+	// Update a direct plan.
+	// (PATCH /plans/{uuid}/direct)
+	PatchDirectPlan(ctx context.Context, request PatchDirectPlanRequestObject) (PatchDirectPlanResponseObject, error)
+	// Create (or update) a direct plan.
+	// (PUT /plans/{uuid}/direct)
+	PutDirectPlan(ctx context.Context, request PutDirectPlanRequestObject) (PutDirectPlanResponseObject, error)
 	// Get a source by UUID
 	// (GET /sources/{uuid})
 	GetSource(ctx context.Context, request GetSourceRequestObject) (GetSourceResponseObject, error)
@@ -2853,6 +4129,164 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictHTTPServerOptions
+}
+
+// GetPlan operation middleware
+func (sh *strictHandler) GetPlan(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID) {
+	var request GetPlanRequestObject
+
+	request.Uuid = uuid
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetPlan(ctx, request.(GetPlanRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetPlan")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetPlanResponseObject); ok {
+		if err := validResponse.VisitGetPlanResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// PatchChapterRangePlan operation middleware
+func (sh *strictHandler) PatchChapterRangePlan(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID) {
+	var request PatchChapterRangePlanRequestObject
+
+	request.Uuid = uuid
+
+	var body PatchChapterRangePlanJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.PatchChapterRangePlan(ctx, request.(PatchChapterRangePlanRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PatchChapterRangePlan")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(PatchChapterRangePlanResponseObject); ok {
+		if err := validResponse.VisitPatchChapterRangePlanResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// PutChapterRangePlan operation middleware
+func (sh *strictHandler) PutChapterRangePlan(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID) {
+	var request PutChapterRangePlanRequestObject
+
+	request.Uuid = uuid
+
+	var body PutChapterRangePlanJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.PutChapterRangePlan(ctx, request.(PutChapterRangePlanRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PutChapterRangePlan")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(PutChapterRangePlanResponseObject); ok {
+		if err := validResponse.VisitPutChapterRangePlanResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// PatchDirectPlan operation middleware
+func (sh *strictHandler) PatchDirectPlan(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID) {
+	var request PatchDirectPlanRequestObject
+
+	request.Uuid = uuid
+
+	var body PatchDirectPlanJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.PatchDirectPlan(ctx, request.(PatchDirectPlanRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PatchDirectPlan")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(PatchDirectPlanResponseObject); ok {
+		if err := validResponse.VisitPatchDirectPlanResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// PutDirectPlan operation middleware
+func (sh *strictHandler) PutDirectPlan(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID) {
+	var request PutDirectPlanRequestObject
+
+	request.Uuid = uuid
+
+	var body PutDirectPlanJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.PutDirectPlan(ctx, request.(PutDirectPlanRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PutDirectPlan")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(PutDirectPlanResponseObject); ok {
+		if err := validResponse.VisitPutDirectPlanResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
 }
 
 // GetSource operation middleware
@@ -3174,38 +4608,42 @@ func (sh *strictHandler) PutMovieEdition(w http.ResponseWriter, r *http.Request,
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
-	"AAA=",
+	"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",
+	"//9qc5m7l0oAAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

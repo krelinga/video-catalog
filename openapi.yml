@@ -438,6 +438,239 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /plans/{uuid}:
+    get:
+      summary: Get a plan by UUID
+      description: Returns a Plan object for the given UUID
+      operationId: getPlan
+      parameters:
+        - name: uuid
+          in: path
+          description: UUID of the plan to retrieve
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+        '404':
+          description: Plan not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '400':
+          description: Invalid UUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /plans/{uuid}/direct:
+    put:
+      summary: Create (or update) a direct plan.
+      description: Creates a new direct plan or updates an existing one identified by the given UUID.
+      operationId: putDirectPlan
+      parameters:
+        - name: uuid
+          in: path
+          description: UUID of the plan to update
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                direct:
+                  type: boolean
+      responses:
+        '200':
+          description: Plan updated successfully
+        '201':
+          description: Plan created successfully
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Plan with this UUID not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Plan with this UUID already exists and is not a direct plan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    patch:
+      summary: Update a direct plan.
+      description: Updates an existing direct plan identified by the given UUID.
+      operationId: patchDirectPlan
+      parameters:
+        - name: uuid
+          in: path
+          description: UUID of the plan to update
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                direct:
+                  type: boolean
+      responses:
+        '200':
+          description: Plan updated successfully
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Plan with this UUID not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Plan with this UUID is not a direct plan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /plans/{uuid}/chapter_range:
+    put:
+      summary: Create (or update) a chapter range plan.
+      description: Creates a new chapter range plan or updates an existing one identified by the given UUID.
+      operationId: putChapterRangePlan
+      parameters:
+        - name: uuid
+          in: path
+          description: UUID of the plan to update
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChapterRangePlan'
+      responses:
+        '200':
+          description: Plan updated successfully
+        '201':
+          description: Plan created successfully
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Plan with this UUID not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Plan with this UUID already exists and is not a chapter range plan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    patch:
+      summary: Update a chapter range plan.
+      description: Updates an existing chapter range plan identified by the given UUID.
+      operationId: patchChapterRangePlan
+      parameters:
+        - name: uuid
+          in: path
+          description: UUID of the plan to update
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChapterRangePlan'
+      responses:
+        '200':
+          description: Plan updated successfully
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Plan with this UUID not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Plan with this UUID is not a chapter range plan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
 components:
   schemas:
     Work:
@@ -480,28 +713,11 @@ components:
           format: uuid
           description: Unique identifier for the plan
           example: "523e4567-e89b-12d3-a456-426614174004"
-          
-        direct:
-          type: boolean
-          description: Indicates if the plan is direct
-          example: true
-        chapterRange:
-          $ref: '#/components/schemas/ChapterRange'
 
-        inputs:
-          type: array
-          description: Array of Source UUIDs that this plan will read from.
-          items:
-            type: string
-            format: uuid
-          example: ["623e4567-e89b-12d3-a456-426614174005", "723e4567-e89b-12d3-a456-426614174006"]
-        outputs:
-          type: array
-          description: Array of Work UUIDs that this plan will produce.
-          items:
-            type: string
-            format: uuid
-          example: ["823e4567-e89b-12d3-a456-426614174007", "923e4567-e89b-12d3-a456-426614174008"]
+        direct:
+          $ref: '#/components/schemas/DirectPlan'
+        chapterRange:
+          $ref: '#/components/schemas/ChapterRangePlan'
 
     Error:
       type: object
@@ -577,10 +793,39 @@ components:
           description: Type of the movie edition (e.g., "Director's Cut", "Theatrical")
           example: "Director's Cut"
 
-    ChapterRange:
+    DirectPlan:
       type: object
-      description: Represents a range of chapters in a video file
+      description: Represents a plan for producing a work directly from a source file without modification.
       properties:
+        sourceUuid:
+          type: string
+          format: uuid
+          nullable: true
+          description: UUID of the source file
+          example: "323e4567-e89b-12d3-a456-426614174002"
+        workUuid:
+          type: string
+          format: uuid
+          nullable: true
+          description: UUID of the work to be produced.
+          example: "123e4567-e89b-12d3-a456-426614174003"
+
+    ChapterRangePlan:
+      type: object
+      description: Represents a plan for producing a work from specific chapters of a source file.
+      properties:
+        sourceUuid:
+          type: string
+          format: uuid
+          nullable: true
+          description: UUID of the source file containing the chapters
+          example: "323e4567-e89b-12d3-a456-426614174002"
+        workUuid:
+          type: string
+          format: uuid
+          nullable: true
+          description: UUID of the work that the chapters comprise.
+          example: "123e4567-e89b-12d3-a456-426614174003"
         startChapter:
           type: integer
           format: int32
