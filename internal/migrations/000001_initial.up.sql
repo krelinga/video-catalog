@@ -25,14 +25,12 @@ CREATE TABLE plans (
 CREATE TABLE plan_inputs (
     plan_uuid UUID NOT NULL REFERENCES plans(uuid) ON DELETE CASCADE,
     source_uuid UUID NOT NULL REFERENCES sources(uuid) ON DELETE CASCADE,
-    ordinal INT NOT NULL,
-    PRIMARY KEY (plan_uuid, source_uuid, ordinal)
+    PRIMARY KEY (plan_uuid, source_uuid)
 );
 
 -- Create plan_outputs table
 CREATE TABLE plan_outputs (
     plan_uuid UUID NOT NULL REFERENCES plans(uuid) ON DELETE CASCADE,
     work_uuid UUID NOT NULL REFERENCES works(uuid) ON DELETE CASCADE,
-    ordinal INT NOT NULL,
-    PRIMARY KEY (plan_uuid, work_uuid, ordinal)
+    PRIMARY KEY (plan_uuid, work_uuid)
 );
