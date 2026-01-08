@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/krelinga/video-catalog/internal"
 	"github.com/krelinga/video-catalog/vcrest"
@@ -15,7 +14,7 @@ import (
 // PatchDirectPlan updates fields of a direct plan with the given UUID
 func (s *Server) PatchDirectPlan(ctx context.Context, request vcrest.PatchDirectPlanRequestObject) (outResp vcrest.PatchDirectPlanResponseObject, _ error) {
 	// Validate request.
-	requestUuid, err := uuid.Parse(request.Uuid.String())
+	requestUuid, err := internal.ParseUUID(request.Uuid.String())
 	if err != nil {
 		outResp = vcrest.PatchDirectPlan400JSONResponse{
 			Message: "invalid UUID format",
@@ -29,50 +28,20 @@ func (s *Server) PatchDirectPlan(ctx context.Context, request vcrest.PatchDirect
 		return
 	}
 
-	var sourceUuid uuid.UUID
-	if request.Body.SourceUuid.IsSpecified() {
-		if request.Body.SourceUuid.IsNull() {
-			outResp = vcrest.PatchDirectPlan400JSONResponse{
-				Message: "SourceUuid cannot be null",
-			}
-			return
+	sourceUuid, updateInputs, err := internal.ValidateOptionalNonNullableUUID(request.Body.SourceUuid)
+	if err != nil {
+		outResp = vcrest.PatchDirectPlan400JSONResponse{
+			Message: fmt.Sprintf("SourceUuid: %v", err),
 		}
-		sourceUuid, err = uuid.Parse(request.Body.SourceUuid.MustGet().String())
-		if err != nil {
-			outResp = vcrest.PatchDirectPlan400JSONResponse{
-				Message: "invalid SourceUuid format",
-			}
-			return
-		}
-		if sourceUuid == uuid.Nil {
-			outResp = vcrest.PatchDirectPlan400JSONResponse{
-				Message: "SourceUuid cannot be empty",
-			}
-			return
-		}
+		return
 	}
 
-	var workUuid uuid.UUID
-	if request.Body.WorkUuid.IsSpecified() {
-		if request.Body.WorkUuid.IsNull() {
-			outResp = vcrest.PatchDirectPlan400JSONResponse{
-				Message: "WorkUuid cannot be null",
-			}
-			return
+	workUuid, updateOutputs, err := internal.ValidateOptionalNonNullableUUID(request.Body.WorkUuid)
+	if err != nil {
+		outResp = vcrest.PatchDirectPlan400JSONResponse{
+			Message: fmt.Sprintf("WorkUuid: %v", err),
 		}
-		workUuid, err = uuid.Parse(request.Body.WorkUuid.MustGet().String())
-		if err != nil {
-			outResp = vcrest.PatchDirectPlan400JSONResponse{
-				Message: "invalid WorkUuid format",
-			}
-			return
-		}
-		if workUuid == uuid.Nil {
-			outResp = vcrest.PatchDirectPlan400JSONResponse{
-				Message: "WorkUuid cannot be empty",
-			}
-			return
-		}
+		return
 	}
 
 	txn, err := s.Pool.Begin(ctx)
@@ -118,16 +87,11 @@ func (s *Server) PatchDirectPlan(ctx context.Context, request vcrest.PatchDirect
 	}
 
 	// Track if we need to update the relation tables
-	updateInputs := false
-	updateOutputs := false
-
-	if request.Body.SourceUuid.IsSpecified() {
+	if updateInputs {
 		body.SourceUUID = sourceUuid
-		updateInputs = true
 	}
-	if request.Body.WorkUuid.IsSpecified() {
+	if updateOutputs {
 		body.WorkUUID = workUuid
-		updateOutputs = true
 	}
 
 	rawBody, err = json.Marshal(body)
@@ -151,46 +115,18 @@ func (s *Server) PatchDirectPlan(ctx context.Context, request vcrest.PatchDirect
 	}
 
 	if updateInputs {
-		_, err = txn.Exec(ctx, `
-			DELETE FROM plan_inputs WHERE plan_uuid = $1
-		`, requestUuid)
-		if err != nil {
+		if err := internal.UpdatePlanInputs(ctx, txn, requestUuid, body.SourceUUID); err != nil {
 			outResp = vcrest.PatchDirectPlan500JSONResponse{
-				Message: fmt.Sprintf("failed to delete old plan_inputs: %v", err),
-			}
-			return
-		}
-
-		_, err = txn.Exec(ctx, `
-			INSERT INTO plan_inputs (plan_uuid, source_uuid)
-			VALUES ($1, $2)
-		`, requestUuid, body.SourceUUID)
-		if err != nil {
-			outResp = vcrest.PatchDirectPlan500JSONResponse{
-				Message: fmt.Sprintf("failed to insert plan_inputs: %v", err),
+				Message: err.Error(),
 			}
 			return
 		}
 	}
 
 	if updateOutputs {
-		_, err = txn.Exec(ctx, `
-			DELETE FROM plan_outputs WHERE plan_uuid = $1
-		`, requestUuid)
-		if err != nil {
+		if err := internal.UpdatePlanOutputs(ctx, txn, requestUuid, body.WorkUUID); err != nil {
 			outResp = vcrest.PatchDirectPlan500JSONResponse{
-				Message: fmt.Sprintf("failed to delete old plan_outputs: %v", err),
-			}
-			return
-		}
-
-		_, err = txn.Exec(ctx, `
-			INSERT INTO plan_outputs (plan_uuid, work_uuid)
-			VALUES ($1, $2)
-		`, requestUuid, body.WorkUUID)
-		if err != nil {
-			outResp = vcrest.PatchDirectPlan500JSONResponse{
-				Message: fmt.Sprintf("failed to insert plan_outputs: %v", err),
+				Message: err.Error(),
 			}
 			return
 		}

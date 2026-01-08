@@ -11,7 +11,6 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/krelinga/video-catalog/internal"
 	"github.com/krelinga/video-catalog/vcrest"
-	"github.com/oapi-codegen/nullable"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
@@ -88,7 +87,7 @@ func (s *Server) ListPlans(ctx context.Context, request vcrest.ListPlansRequestO
 	var workUUID uuid.UUID
 	if request.Params.SourceUuid != nil {
 		var err error
-		sourceUUID, err = uuid.Parse(request.Params.SourceUuid.String())
+		sourceUUID, err = internal.ParseUUID(request.Params.SourceUuid.String())
 		if err != nil {
 			outResp = vcrest.ListPlans400JSONResponse{
 				Message: "invalid sourceUuid format",
@@ -98,7 +97,7 @@ func (s *Server) ListPlans(ctx context.Context, request vcrest.ListPlansRequestO
 	}
 	if request.Params.WorkUuid != nil {
 		var err error
-		workUUID, err = uuid.Parse(request.Params.WorkUuid.String())
+		workUUID, err = internal.ParseUUID(request.Params.WorkUuid.String())
 		if err != nil {
 			outResp = vcrest.ListPlans400JSONResponse{
 				Message: "invalid workUuid format",
@@ -206,31 +205,13 @@ func (s *Server) ListPlans(ctx context.Context, request vcrest.ListPlansRequestO
 			if err := json.Unmarshal(row.bodyRaw, &directBody); err != nil {
 				return fmt.Errorf("failed to unmarshal direct plan body: %w", err)
 			}
-			plan.Direct = &vcrest.DirectPlan{
-				SourceUuid: nullable.NewNullableWithValue(openapi_types.UUID(directBody.SourceUUID)),
-				WorkUuid:   nullable.NewNullableWithValue(openapi_types.UUID(directBody.WorkUUID)),
-			}
+			plan.Direct = directBody.ToAPI()
 		case internal.PlanKindChapterRange:
 			var chapterRangeBody internal.ChapterRangePlan
 			if err := json.Unmarshal(row.bodyRaw, &chapterRangeBody); err != nil {
 				return fmt.Errorf("failed to unmarshal chapter range plan body: %w", err)
 			}
-			plan.ChapterRange = &vcrest.ChapterRangePlan{
-				SourceUuid: nullable.NewNullableWithValue(openapi_types.UUID(chapterRangeBody.SourceUUID)),
-				WorkUuid:   nullable.NewNullableWithValue(openapi_types.UUID(chapterRangeBody.WorkUUID)),
-				StartChapter: func() nullable.Nullable[int32] {
-					if chapterRangeBody.StartChapter != nil {
-						return nullable.NewNullableWithValue(int32(*chapterRangeBody.StartChapter))
-					}
-					return nullable.Nullable[int32]{}
-				}(),
-				EndChapter: func() nullable.Nullable[int32] {
-					if chapterRangeBody.EndChapter != nil {
-						return nullable.NewNullableWithValue(int32(*chapterRangeBody.EndChapter))
-					}
-					return nullable.Nullable[int32]{}
-				}(),
-			}
+			plan.ChapterRange = chapterRangeBody.ToAPI()
 		default:
 			return fmt.Errorf("unimplemented plan kind: %s", row.kind)
 		}

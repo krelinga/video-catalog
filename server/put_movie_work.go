@@ -6,8 +6,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/krelinga/video-catalog/internal"
 	"github.com/krelinga/video-catalog/vcrest"
 )
@@ -15,7 +13,7 @@ import (
 // PutMovieWork adds or updates a movie work with the given UUID
 func (s *Server) PutMovieWork(ctx context.Context, request vcrest.PutMovieWorkRequestObject) (outResp vcrest.PutMovieWorkResponseObject, _ error) {
 	// Validate request.
-	requestUuid, err := uuid.Parse(request.Uuid.String())
+	requestUuid, err := internal.ParseUUID(request.Uuid.String())
 	if err != nil {
 		outResp = vcrest.PutMovieWork400JSONResponse{
 			Message: "invalid UUID format",
@@ -28,6 +26,7 @@ func (s *Server) PutMovieWork(ctx context.Context, request vcrest.PutMovieWorkRe
 		}
 		return
 	}
+	// TODO: call helper methods.
 	var body internal.MovieWork
 	if !request.Body.Title.IsSpecified() || request.Body.Title.IsNull() || request.Body.Title.MustGet() == "" {
 		outResp = vcrest.PutMovieWork400JSONResponse{
@@ -54,16 +53,8 @@ func (s *Server) PutMovieWork(ctx context.Context, request vcrest.PutMovieWorkRe
 		return
 	}
 
-	row := s.Pool.QueryRow(ctx, `
-		INSERT INTO works (uuid, kind, body)
-		VALUES ($1, $2, $3)
-		ON CONFLICT (uuid) DO UPDATE
-		SET body = EXCLUDED.body
-		WHERE works.kind = $2
-		RETURNING xmax`,
-		requestUuid, internal.WorkKindMovie, bodyRaw)
-	var xmax uint32
-	if err := row.Scan(&xmax); errors.Is(err, pgx.ErrNoRows) {
+	result, err := internal.UpsertEntity(ctx, s.Pool, "works", requestUuid, internal.WorkKindMovie, bodyRaw)
+	if errors.Is(err, internal.ErrUpsertType) {
 		outResp = vcrest.PutMovieWork409JSONResponse{
 			Message: "work with given UUID already exists with different kind",
 		}
@@ -75,7 +66,7 @@ func (s *Server) PutMovieWork(ctx context.Context, request vcrest.PutMovieWorkRe
 		return
 	}
 
-	if xmax == 0 {
+	if result == internal.UpsertCreated {
 		outResp = vcrest.PutMovieWork201Response{}
 	} else {
 		outResp = vcrest.PutMovieWork200Response{}

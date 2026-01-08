@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/krelinga/video-catalog/internal"
 	"github.com/krelinga/video-catalog/vcrest"
@@ -15,7 +14,7 @@ import (
 // PatchMovieEdition updates fields of a movie edition work with the given UUID
 func (s *Server) PatchMovieEdition(ctx context.Context, request vcrest.PatchMovieEditionRequestObject) (outResp vcrest.PatchMovieEditionResponseObject, _ error) {
 	// Validate request.
-	requestUuid, err := uuid.Parse(request.Uuid.String())
+	requestUuid, err := internal.ParseUUID(request.Uuid.String())
 	if err != nil {
 		outResp = vcrest.PatchMovieEdition400JSONResponse{
 			Message: "invalid UUID format",
@@ -28,9 +27,10 @@ func (s *Server) PatchMovieEdition(ctx context.Context, request vcrest.PatchMovi
 		}
 		return
 	}
-	if request.Body.EditionType.IsSpecified() && (request.Body.EditionType.IsNull() || request.Body.EditionType.MustGet() == "") {
+	newEditionType, updateEditionType, err := internal.ValidateOptionalNonEmptyString(request.Body.EditionType)
+	if err != nil {
 		outResp = vcrest.PatchMovieEdition400JSONResponse{
-			Message: "cannot update editionType to be null or empty",
+			Message: fmt.Sprintf("EditionType: %v", err),
 		}
 		return
 	}
@@ -76,8 +76,8 @@ func (s *Server) PatchMovieEdition(ctx context.Context, request vcrest.PatchMovi
 		return
 	}
 
-	if request.Body.EditionType.IsSpecified() {
-		body.EditionType = request.Body.EditionType.MustGet()
+	if updateEditionType {
+		body.EditionType = newEditionType
 	}
 
 	rawBody, err = json.Marshal(body)

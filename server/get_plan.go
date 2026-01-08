@@ -6,18 +6,15 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/krelinga/video-catalog/internal"
 	"github.com/krelinga/video-catalog/vcrest"
-	"github.com/oapi-codegen/nullable"
-	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 // GetPlan retrieves a plan by UUID
 func (s *Server) GetPlan(ctx context.Context, request vcrest.GetPlanRequestObject) (outResp vcrest.GetPlanResponseObject, outErr error) {
 	// Validate request.
-	requestUuid, err := uuid.Parse(request.Uuid.String())
+	requestUuid, err := internal.ParseUUID(request.Uuid.String())
 	if err != nil {
 		outResp = vcrest.GetPlan400JSONResponse{
 			Message: "invalid UUID format",
@@ -70,11 +67,8 @@ func (s *Server) GetPlan(ctx context.Context, request vcrest.GetPlanRequestObjec
 			return
 		}
 		outResp = vcrest.GetPlan200JSONResponse{
-			Uuid: request.Uuid,
-			Direct: &vcrest.DirectPlan{
-				SourceUuid: nullable.NewNullableWithValue(openapi_types.UUID(directBody.SourceUUID)),
-				WorkUuid:   nullable.NewNullableWithValue(openapi_types.UUID(directBody.WorkUUID)),
-			},
+			Uuid:   request.Uuid,
+			Direct: directBody.ToAPI(),
 		}
 		return
 	case internal.PlanKindChapterRange:
@@ -86,23 +80,8 @@ func (s *Server) GetPlan(ctx context.Context, request vcrest.GetPlanRequestObjec
 			return
 		}
 		outResp = vcrest.GetPlan200JSONResponse{
-			Uuid: request.Uuid,
-			ChapterRange: &vcrest.ChapterRangePlan{
-				SourceUuid: nullable.NewNullableWithValue(openapi_types.UUID(chapterRangeBody.SourceUUID)),
-				WorkUuid:   nullable.NewNullableWithValue(openapi_types.UUID(chapterRangeBody.WorkUUID)),
-				StartChapter: func() nullable.Nullable[int32] {
-					if chapterRangeBody.StartChapter != nil {
-						return nullable.NewNullableWithValue(int32(*chapterRangeBody.StartChapter))
-					}
-					return nullable.Nullable[int32]{}
-				}(),
-				EndChapter: func() nullable.Nullable[int32] {
-					if chapterRangeBody.EndChapter != nil {
-						return nullable.NewNullableWithValue(int32(*chapterRangeBody.EndChapter))
-					}
-					return nullable.Nullable[int32]{}
-				}(),
-			},
+			Uuid:         request.Uuid,
+			ChapterRange: chapterRangeBody.ToAPI(),
 		}
 		return
 	default:

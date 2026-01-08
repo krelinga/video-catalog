@@ -36,7 +36,9 @@ type Execer interface {
 // UpsertEntity performs an INSERT ON CONFLICT DO UPDATE for an entity table (works, sources, plans).
 // Returns UpsertCreated if a new row was created, UpsertUpdated if an existing row was updated,
 // or ErrUpsertType if the row exists with a different kind.
-func UpsertEntity(ctx context.Context, q Querier, table string, id uuid.UUID, kind string, body json.RawMessage) (UpsertResult, error) {
+// The kind parameter accepts any type that can be passed to pgx (e.g., WorkKind, SourceKind, PlanKind).
+// TODO: change this to take a generic type based on ~string.
+func UpsertEntity(ctx context.Context, q Querier, table string, id uuid.UUID, kind any, body json.RawMessage) (UpsertResult, error) {
 	query := fmt.Sprintf(`
 		INSERT INTO %s (uuid, kind, body)
 		VALUES ($1, $2, $3)

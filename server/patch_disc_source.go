@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/krelinga/video-catalog/internal"
 	"github.com/krelinga/video-catalog/vcrest"
@@ -15,7 +14,7 @@ import (
 // PatchDiscSource updates fields of a disc source with the given UUID
 func (s *Server) PatchDiscSource(ctx context.Context, request vcrest.PatchDiscSourceRequestObject) (outResp vcrest.PatchDiscSourceResponseObject, _ error) {
 	// Validate request.
-	requestUuid, err := uuid.Parse(request.Uuid.String())
+	requestUuid, err := internal.ParseUUID(request.Uuid.String())
 	if err != nil {
 		outResp = vcrest.PatchDiscSource400JSONResponse{
 			Message: "invalid UUID format",
@@ -28,15 +27,17 @@ func (s *Server) PatchDiscSource(ctx context.Context, request vcrest.PatchDiscSo
 		}
 		return
 	}
-	if request.Body.OrigDirName.IsSpecified() && (request.Body.OrigDirName.IsNull() || request.Body.OrigDirName.MustGet() == "") {
+	newOrigDirName, updateOrigDirName, err := internal.ValidateOptionalNonEmptyString(request.Body.OrigDirName)
+	if err != nil {
 		outResp = vcrest.PatchDiscSource400JSONResponse{
-			Message: "OrigDirName cannot be null or empty",
+			Message: fmt.Sprintf("OrigDirName: %v", err),
 		}
 		return
 	}
-	if request.Body.Path.IsSpecified() && (request.Body.Path.IsNull() || request.Body.Path.MustGet() == "") {
+	newPath, updatePath, err := internal.ValidateOptionalNonEmptyString(request.Body.Path)
+	if err != nil {
 		outResp = vcrest.PatchDiscSource400JSONResponse{
-			Message: "Path cannot be null or empty",
+			Message: fmt.Sprintf("Path: %v", err),
 		}
 		return
 	}
@@ -88,11 +89,11 @@ func (s *Server) PatchDiscSource(ctx context.Context, request vcrest.PatchDiscSo
 		return
 	}
 
-	if request.Body.OrigDirName.IsSpecified() {
-		body.OrigDirName = request.Body.OrigDirName.MustGet()
+	if updateOrigDirName {
+		body.OrigDirName = newOrigDirName
 	}
-	if request.Body.Path.IsSpecified() {
-		body.Path = request.Body.Path.MustGet()
+	if updatePath {
+		body.Path = newPath
 	}
 	if request.Body.AllFilesAdded.IsSpecified() {
 		body.AllFilesAdded = request.Body.AllFilesAdded.MustGet()

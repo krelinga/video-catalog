@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/krelinga/video-catalog/internal"
 	"github.com/krelinga/video-catalog/vcrest"
@@ -15,7 +14,7 @@ import (
 // PatchMovieWork updates fields of a movie work with the given UUID
 func (s *Server) PatchMovieWork(ctx context.Context, request vcrest.PatchMovieWorkRequestObject) (outResp vcrest.PatchMovieWorkResponseObject, _ error) {
 	// Validate request.
-	requestUuid, err := uuid.Parse(request.Uuid.String())
+	requestUuid, err := internal.ParseUUID(request.Uuid.String())
 	if err != nil {
 		outResp = vcrest.PatchMovieWork400JSONResponse{
 			Message: "invalid UUID format",
@@ -28,9 +27,10 @@ func (s *Server) PatchMovieWork(ctx context.Context, request vcrest.PatchMovieWo
 		}
 		return
 	}
-	if request.Body.Title.IsSpecified() && (request.Body.Title.IsNull() || request.Body.Title.MustGet() == "") {
+	newTitle, updateTitle, err := internal.ValidateOptionalNonEmptyString(request.Body.Title)
+	if err != nil {
 		outResp = vcrest.PatchMovieWork400JSONResponse{
-			Message: "cannot update title to be null or empty",
+			Message: fmt.Sprintf("Title: %v", err),
 		}
 		return
 	}
@@ -76,8 +76,8 @@ func (s *Server) PatchMovieWork(ctx context.Context, request vcrest.PatchMovieWo
 		return
 	}
 
-	if request.Body.Title.IsSpecified() {
-		body.Title = request.Body.Title.MustGet()
+	if updateTitle {
+		body.Title = newTitle
 	}
 	if request.Body.ReleaseYear.IsSpecified() {
 		if request.Body.ReleaseYear.IsNull() {

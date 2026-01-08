@@ -6,8 +6,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/krelinga/video-catalog/internal"
 	"github.com/krelinga/video-catalog/vcrest"
 )
@@ -15,7 +13,7 @@ import (
 // PutFileSource adds or updates a file source with the given UUID
 func (s *Server) PutFileSource(ctx context.Context, request vcrest.PutFileSourceRequestObject) (outResp vcrest.PutFileSourceResponseObject, _ error) {
 	// Validate request.
-	requestUuid, err := uuid.Parse(request.Uuid.String())
+	requestUuid, err := internal.ParseUUID(request.Uuid.String())
 	if err != nil {
 		outResp = vcrest.PutFileSource400JSONResponse{
 			Message: "invalid UUID format",
@@ -28,6 +26,7 @@ func (s *Server) PutFileSource(ctx context.Context, request vcrest.PutFileSource
 		}
 		return
 	}
+	// TODO: use helpers.
 	if !request.Body.Path.IsSpecified() || request.Body.Path.IsNull() || request.Body.Path.MustGet() == "" {
 		outResp = vcrest.PutFileSource400JSONResponse{
 			Message: "non-empty Path is required",
@@ -47,16 +46,8 @@ func (s *Server) PutFileSource(ctx context.Context, request vcrest.PutFileSource
 		return
 	}
 
-	row := s.Pool.QueryRow(ctx, `
-		INSERT INTO sources (uuid, kind, body)
-		VALUES ($1, $2, $3)
-		ON CONFLICT (uuid) DO UPDATE
-		SET body = EXCLUDED.body
-		WHERE sources.kind = $2
-		RETURNING xmax`,
-		requestUuid, internal.SourceKindFile, bodyRaw)
-	var xmax uint32
-	if err := row.Scan(&xmax); errors.Is(err, pgx.ErrNoRows) {
+	result, err := internal.UpsertEntity(ctx, s.Pool, "sources", requestUuid, internal.SourceKindFile, bodyRaw)
+	if errors.Is(err, internal.ErrUpsertType) {
 		outResp = vcrest.PutFileSource409JSONResponse{
 			Message: "source with given UUID already exists with different kind",
 		}
@@ -68,7 +59,7 @@ func (s *Server) PutFileSource(ctx context.Context, request vcrest.PutFileSource
 		return
 	}
 
-	if xmax == 0 {
+	if result == internal.UpsertCreated {
 		outResp = vcrest.PutFileSource201Response{}
 	} else {
 		outResp = vcrest.PutFileSource200Response{}

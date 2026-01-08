@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/krelinga/video-catalog/internal"
 	"github.com/krelinga/video-catalog/vcrest"
@@ -15,7 +14,7 @@ import (
 // PatchFileSource updates fields of a file source with the given UUID
 func (s *Server) PatchFileSource(ctx context.Context, request vcrest.PatchFileSourceRequestObject) (outResp vcrest.PatchFileSourceResponseObject, _ error) {
 	// Validate request.
-	requestUuid, err := uuid.Parse(request.Uuid.String())
+	requestUuid, err := internal.ParseUUID(request.Uuid.String())
 	if err != nil {
 		outResp = vcrest.PatchFileSource400JSONResponse{
 			Message: "invalid UUID format",
@@ -28,9 +27,10 @@ func (s *Server) PatchFileSource(ctx context.Context, request vcrest.PatchFileSo
 		}
 		return
 	}
-	if request.Body.Path.IsSpecified() && (request.Body.Path.IsNull() || request.Body.Path.MustGet() == "") {
+	newPath, updatePath, err := internal.ValidateOptionalNonEmptyString(request.Body.Path)
+	if err != nil {
 		outResp = vcrest.PatchFileSource400JSONResponse{
-			Message: "Path cannot be null or empty",
+			Message: fmt.Sprintf("Path: %v", err),
 		}
 		return
 	}
@@ -76,8 +76,8 @@ func (s *Server) PatchFileSource(ctx context.Context, request vcrest.PatchFileSo
 		return
 	}
 
-	if request.Body.Path.IsSpecified() {
-		body.Path = request.Body.Path.MustGet()
+	if updatePath {
+		body.Path = newPath
 	}
 
 	rawBody, err = json.Marshal(body)

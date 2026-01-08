@@ -6,17 +6,15 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/krelinga/video-catalog/internal"
 	"github.com/krelinga/video-catalog/vcrest"
-	"github.com/oapi-codegen/nullable"
 )
 
 // GetSource retrieves a source by UUID
 func (s *Server) GetSource(ctx context.Context, request vcrest.GetSourceRequestObject) (outResp vcrest.GetSourceResponseObject, outErr error) {
 	// Validate request.
-	requestUuid, err := uuid.Parse(request.Uuid.String())
+	requestUuid, err := internal.ParseUUID(request.Uuid.String())
 	if err != nil {
 		outResp = vcrest.GetSource400JSONResponse{
 			Message: "invalid UUID format",
@@ -70,9 +68,7 @@ func (s *Server) GetSource(ctx context.Context, request vcrest.GetSourceRequestO
 		}
 		outResp = vcrest.GetSource200JSONResponse{
 			Uuid: request.Uuid,
-			File: &vcrest.File{
-				Path: nullable.NewNullableWithValue(fileBody.Path),
-			},
+			File: fileBody.ToAPI(),
 		}
 		return
 	case internal.SourceKindDisc:
@@ -85,11 +81,7 @@ func (s *Server) GetSource(ctx context.Context, request vcrest.GetSourceRequestO
 		}
 		outResp = vcrest.GetSource200JSONResponse{
 			Uuid: request.Uuid,
-			Disc: &vcrest.Disc{
-				OrigDirName:   nullable.NewNullableWithValue(discBody.OrigDirName),
-				Path:          nullable.NewNullableWithValue(discBody.Path),
-				AllFilesAdded: nullable.NewNullableWithValue(discBody.AllFilesAdded),
-			},
+			Disc: discBody.ToAPI(),
 		}
 		return
 	default:

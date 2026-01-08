@@ -6,17 +6,15 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/krelinga/video-catalog/internal"
 	"github.com/krelinga/video-catalog/vcrest"
-	"github.com/oapi-codegen/nullable"
 )
 
 // GetWork retrieves a work by UUID
 func (s *Server) GetWork(ctx context.Context, request vcrest.GetWorkRequestObject) (outResp vcrest.GetWorkResponseObject, outErr error) {
 	// Validate request.
-	requestUuid, err := uuid.Parse(request.Uuid.String())
+	requestUuid, err := internal.ParseUUID(request.Uuid.String())
 	if err != nil {
 		outResp = vcrest.GetWork400JSONResponse{
 			Message: "invalid UUID format",
@@ -69,22 +67,8 @@ func (s *Server) GetWork(ctx context.Context, request vcrest.GetWorkRequestObjec
 			return
 		}
 		outResp = vcrest.GetWork200JSONResponse{
-			Uuid: request.Uuid,
-			Movie: &vcrest.Movie{
-				Title: nullable.NewNullableWithValue(movieBody.Title),
-				ReleaseYear: func() nullable.Nullable[int] {
-					if movieBody.ReleaseYear != nil {
-						return nullable.NewNullableWithValue(*movieBody.ReleaseYear)
-					}
-					return nullable.Nullable[int]{}
-				}(),
-				TmdbId: func() nullable.Nullable[int] {
-					if movieBody.TmdbId != nil {
-						return nullable.NewNullableWithValue(*movieBody.TmdbId)
-					}
-					return nullable.Nullable[int]{}
-				}(),
-			},
+			Uuid:  request.Uuid,
+			Movie: movieBody.ToAPI(),
 		}
 		return
 	case internal.WorkKindMovieEdition:
@@ -96,10 +80,8 @@ func (s *Server) GetWork(ctx context.Context, request vcrest.GetWorkRequestObjec
 			return
 		}
 		outResp = vcrest.GetWork200JSONResponse{
-			Uuid: request.Uuid,
-			MovieEdition: &vcrest.MovieEdition{
-				EditionType: nullable.NewNullableWithValue(editionBody.EditionType),
-			},
+			Uuid:         request.Uuid,
+			MovieEdition: editionBody.ToAPI(),
 		}
 		return
 	default:

@@ -6,8 +6,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/krelinga/video-catalog/internal"
 	"github.com/krelinga/video-catalog/vcrest"
 )
@@ -15,7 +13,7 @@ import (
 // PutMovieEdition creates or updates a movie edition work with the given UUID
 func (s *Server) PutMovieEdition(ctx context.Context, request vcrest.PutMovieEditionRequestObject) (outResp vcrest.PutMovieEditionResponseObject, _ error) {
 	// Validate request.
-	requestUuid, err := uuid.Parse(request.Uuid.String())
+	requestUuid, err := internal.ParseUUID(request.Uuid.String())
 	if err != nil {
 		outResp = vcrest.PutMovieEdition400JSONResponse{
 			Message: "invalid UUID format",
@@ -29,6 +27,7 @@ func (s *Server) PutMovieEdition(ctx context.Context, request vcrest.PutMovieEdi
 		return
 	}
 	var body internal.MovieEditionWork
+	// TODO: use helpers.
 	if !request.Body.EditionType.IsSpecified() || request.Body.EditionType.IsNull() || request.Body.EditionType.MustGet() == "" {
 		outResp = vcrest.PutMovieEdition400JSONResponse{
 			Message: "non-empty editionType is required",
@@ -46,16 +45,8 @@ func (s *Server) PutMovieEdition(ctx context.Context, request vcrest.PutMovieEdi
 		return
 	}
 
-	row := s.Pool.QueryRow(ctx, `
-		INSERT INTO works (uuid, kind, body)
-		VALUES ($1, $2, $3)
-		ON CONFLICT (uuid) DO UPDATE
-		SET body = EXCLUDED.body
-		WHERE works.kind = $2
-		RETURNING xmax`,
-		requestUuid, internal.WorkKindMovieEdition, bodyRaw)
-	var xmax uint32
-	if err := row.Scan(&xmax); errors.Is(err, pgx.ErrNoRows) {
+	result, err := internal.UpsertEntity(ctx, s.Pool, "works", requestUuid, internal.WorkKindMovieEdition, bodyRaw)
+	if errors.Is(err, internal.ErrUpsertType) {
 		outResp = vcrest.PutMovieEdition409JSONResponse{
 			Message: "work with given UUID already exists with different kind",
 		}
@@ -67,7 +58,7 @@ func (s *Server) PutMovieEdition(ctx context.Context, request vcrest.PutMovieEdi
 		return
 	}
 
-	if xmax == 0 {
+	if result == internal.UpsertCreated {
 		outResp = vcrest.PutMovieEdition201Response{}
 	} else {
 		outResp = vcrest.PutMovieEdition200Response{}
