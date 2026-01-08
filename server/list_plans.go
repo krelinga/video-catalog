@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/krelinga/video-catalog/internal"
 	"github.com/krelinga/video-catalog/vcrest"
 	"github.com/oapi-codegen/nullable"
@@ -166,6 +167,17 @@ func (s *Server) ListPlans(ctx context.Context, request vcrest.ListPlansRequestO
 		LIMIT $%d`, argIdx)
 	args = append(args, pageSize+1) // Fetch one extra to determine if there's a next page
 
+	plans := []vcrest.Plan{}
+	var nextPageLastUUID uuid.UUID
+	hasMore := false
+
+	type planRow struct {
+		uuid    uuid.UUID
+		kind    internal.PlanKind
+		bodyRaw json.RawMessage
+	}
+
+	var row planRow
 	rows, err := txn.Query(ctx, query, args...)
 	if err != nil {
 		outResp = vcrest.ListPlans500JSONResponse{
@@ -173,48 +185,26 @@ func (s *Server) ListPlans(ctx context.Context, request vcrest.ListPlansRequestO
 		}
 		return
 	}
-	defer rows.Close()
 
-	plans := []vcrest.Plan{}
-	var nextPageLastUUID uuid.UUID
-	hasMore := false
-
-	for rows.Next() {
+	_, err = pgx.ForEachRow(rows, []any{&row.uuid, &row.kind, &row.bodyRaw}, func() error {
 		if len(plans) >= pageSize {
-			// We have one extra row, meaning there's a next page
 			hasMore = true
-			break
+			return nil
 		}
 
-		var planUUID uuid.UUID
-		var kind internal.PlanKind
-		var bodyRaw json.RawMessage
-		if err := rows.Scan(&planUUID, &kind, &bodyRaw); err != nil {
-			outResp = vcrest.ListPlans500JSONResponse{
-				Message: fmt.Sprintf("failed to scan plan row: %v", err),
-			}
-			return
-		}
-
-		if !kind.IsValid() {
-			outResp = vcrest.ListPlans500JSONResponse{
-				Message: fmt.Sprintf("invalid plan kind in database: %s", kind),
-			}
-			return
+		if !row.kind.IsValid() {
+			return fmt.Errorf("invalid plan kind in database: %s", row.kind)
 		}
 
 		plan := vcrest.Plan{
-			Uuid: openapi_types.UUID(planUUID),
+			Uuid: openapi_types.UUID(row.uuid),
 		}
 
-		switch kind {
+		switch row.kind {
 		case internal.PlanKindDirect:
 			var directBody internal.DirectPlan
-			if err := json.Unmarshal(bodyRaw, &directBody); err != nil {
-				outResp = vcrest.ListPlans500JSONResponse{
-					Message: fmt.Sprintf("failed to unmarshal direct plan body: %v", err),
-				}
-				return
+			if err := json.Unmarshal(row.bodyRaw, &directBody); err != nil {
+				return fmt.Errorf("failed to unmarshal direct plan body: %w", err)
 			}
 			plan.Direct = &vcrest.DirectPlan{
 				SourceUuid: nullable.NewNullableWithValue(openapi_types.UUID(directBody.SourceUUID)),
@@ -222,11 +212,8 @@ func (s *Server) ListPlans(ctx context.Context, request vcrest.ListPlansRequestO
 			}
 		case internal.PlanKindChapterRange:
 			var chapterRangeBody internal.ChapterRangePlan
-			if err := json.Unmarshal(bodyRaw, &chapterRangeBody); err != nil {
-				outResp = vcrest.ListPlans500JSONResponse{
-					Message: fmt.Sprintf("failed to unmarshal chapter range plan body: %v", err),
-				}
-				return
+			if err := json.Unmarshal(row.bodyRaw, &chapterRangeBody); err != nil {
+				return fmt.Errorf("failed to unmarshal chapter range plan body: %w", err)
 			}
 			plan.ChapterRange = &vcrest.ChapterRangePlan{
 				SourceUuid: nullable.NewNullableWithValue(openapi_types.UUID(chapterRangeBody.SourceUUID)),
@@ -245,20 +232,16 @@ func (s *Server) ListPlans(ctx context.Context, request vcrest.ListPlansRequestO
 				}(),
 			}
 		default:
-			outResp = vcrest.ListPlans500JSONResponse{
-				Message: fmt.Sprintf("unimplemented plan kind: %s", kind),
-			}
-			return
+			return fmt.Errorf("unimplemented plan kind: %s", row.kind)
 		}
 
 		plans = append(plans, plan)
-		nextPageLastUUID = planUUID
-	}
-	rows.Close()
-
-	if err := rows.Err(); err != nil {
+		nextPageLastUUID = row.uuid
+		return nil
+	})
+	if err != nil {
 		outResp = vcrest.ListPlans500JSONResponse{
-			Message: fmt.Sprintf("error iterating plans: %v", err),
+			Message: fmt.Sprintf("failed to query and scan plans: %v", err),
 		}
 		return
 	}
