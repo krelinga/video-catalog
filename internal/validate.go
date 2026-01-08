@@ -18,6 +18,7 @@ var (
 	ErrNullOrEmpty = errors.New("cannot be null or empty")
 )
 
+// FieldRequired checks that the field is specified.
 func FieldRequired[T any](field nullable.Nullable[T]) error {
 	if !field.IsSpecified() {
 		return ErrRequired
@@ -25,6 +26,8 @@ func FieldRequired[T any](field nullable.Nullable[T]) error {
 	return nil
 }
 
+// FieldNotNull checks that the field is not null.
+// If the field is not specified, this returns nil.
 func FieldNotNull[T any](field nullable.Nullable[T]) error {
 	if field.IsSpecified() && field.IsNull() {
 		return ErrNull
@@ -32,6 +35,8 @@ func FieldNotNull[T any](field nullable.Nullable[T]) error {
 	return nil
 }
 
+// FieldNotEmpty checks that the field is not empty.
+// If the field is not specified or is null, this returns nil.
 func FieldNotEmpty[T ~string](field nullable.Nullable[T]) error {
 	if field.IsSpecified() && !field.IsNull() && field.MustGet() == "" {
 		return ErrEmpty
@@ -39,6 +44,8 @@ func FieldNotEmpty[T ~string](field nullable.Nullable[T]) error {
 	return nil
 }
 
+// FieldValidUUID checks that the field is a valid UUID string.
+// If the field is not specified or is null, this returns nil.
 func FieldValidUUID[T fmt.Stringer](field nullable.Nullable[T]) error {
 	if field.IsSpecified() && !field.IsNull() {
 		_, err := AsUUID(field.MustGet())
@@ -49,6 +56,8 @@ func FieldValidUUID[T fmt.Stringer](field nullable.Nullable[T]) error {
 	return nil
 }
 
+// FieldNonZeroUUID checks that the field is a valid, non-zero UUID string.
+// If the field is not specified or is null, this returns nil.
 func FieldNonZeroUUID[T fmt.Stringer](field nullable.Nullable[T]) error {
 	if field.IsSpecified() && !field.IsNull() {
 		parsed, err := AsUUID(field.MustGet())
@@ -62,6 +71,8 @@ func FieldNonZeroUUID[T fmt.Stringer](field nullable.Nullable[T]) error {
 	return nil
 }
 
+// FieldMustUUID parses and returns the UUID from the field.
+// Panics if the field is not a valid UUID.
 func FieldMustUUID[T fmt.Stringer](field nullable.Nullable[T]) uuid.UUID {
 	parsed, err := AsUUID(field.MustGet())
 	if err != nil {
@@ -70,6 +81,7 @@ func FieldMustUUID[T fmt.Stringer](field nullable.Nullable[T]) uuid.UUID {
 	return parsed
 }
 
+// FieldMayUUID parses and returns the UUID contained in the field as a pointer if it is set and non-null.
 func FieldMayUUID[T fmt.Stringer](field nullable.Nullable[T]) *uuid.UUID {
 	if !field.IsSpecified() || field.IsNull() {
 		return nil
@@ -81,6 +93,7 @@ func FieldMayUUID[T fmt.Stringer](field nullable.Nullable[T]) *uuid.UUID {
 	return &parsed
 }
 
+// FieldMay returns a pointer to the value contained in the field if it is set and non-null.
 func FieldMay[T any](field nullable.Nullable[T]) *T {
 	if !field.IsSpecified() || field.IsNull() {
 		return nil
@@ -89,6 +102,7 @@ func FieldMay[T any](field nullable.Nullable[T]) *T {
 	return &val
 }
 
+// AsUUID parses the given stringer as a UUID, returning an error if the format is invalid.
 func AsUUID(in fmt.Stringer) (uuid.UUID, error) {
 	parsed, err := uuid.Parse(in.String())
 	if err != nil {
@@ -97,6 +111,8 @@ func AsUUID(in fmt.Stringer) (uuid.UUID, error) {
 	return parsed, nil
 }
 
+// FieldSetClear sets the output pointer to nil if the field is null, or to the value if not null.
+// Does nothing if the field is not specified.
 func FieldSetClear[T any](field nullable.Nullable[T], out **T) {
 	if !field.IsSpecified() {
 		return
@@ -109,6 +125,8 @@ func FieldSetClear[T any](field nullable.Nullable[T], out **T) {
 	}
 }
 
+// FieldSet sets the output value to the value contained in the field.
+// Does nothing if the field is not specified or is null.
 func FieldSet[T any](field nullable.Nullable[T], out *T) {
 	if !field.IsSpecified() || field.IsNull() {
 		return
