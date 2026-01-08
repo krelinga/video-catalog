@@ -14,11 +14,6 @@ type Server struct {
 	Pool   *pgxpool.Pool
 }
 
-// GetSource retrieves a source by UUID
-func (s *Server) GetSource(ctx context.Context, request vcrest.GetSourceRequestObject) (vcrest.GetSourceResponseObject, error) {
-	return nil, fmt.Errorf("not implemented")
-}
-
 // GetPlan retrieves a plan by UUID
 func (s *Server) GetPlan(ctx context.Context, request vcrest.GetPlanRequestObject) (vcrest.GetPlanResponseObject, error) {
 	return nil, fmt.Errorf("not implemented")
