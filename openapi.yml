@@ -548,10 +548,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                direct:
-                  type: boolean
+              $ref: '#/components/schemas/DirectPlan'
       responses:
         '200':
           description: Plan updated successfully
@@ -598,10 +595,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                direct:
-                  type: boolean
+              $ref: '#/components/schemas/DirectPlan'
       responses:
         '200':
           description: Plan updated successfully
