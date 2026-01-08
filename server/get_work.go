@@ -87,6 +87,21 @@ func (s *Server) GetWork(ctx context.Context, request vcrest.GetWorkRequestObjec
 			},
 		}
 		return
+	case internal.WorkKindMovieEdition:
+		var editionBody internal.MovieEditionWork
+		if err := json.Unmarshal(bodyRaw, &editionBody); err != nil {
+			outResp = vcrest.GetWork500JSONResponse{
+				Message: fmt.Sprintf("failed to unmarshal movie edition work body: %v", err),
+			}
+			return
+		}
+		outResp = vcrest.GetWork200JSONResponse{
+			Uuid: request.Uuid,
+			MovieEdition: &vcrest.MovieEdition{
+				EditionType: nullable.NewNullableWithValue(editionBody.EditionType),
+			},
+		}
+		return
 	default:
 		outResp = vcrest.GetWork500JSONResponse{
 			Message: fmt.Sprintf("unimplemented work kind: %s", kind),
