@@ -14,7 +14,7 @@ import (
 // PatchMovieWork updates fields of a movie work with the given UUID
 func (s *Server) PatchMovieWork(ctx context.Context, request vcrest.PatchMovieWorkRequestObject) (outResp vcrest.PatchMovieWorkResponseObject, _ error) {
 	// Validate request.
-	requestUuid, err := internal.ParseUUID(request.Uuid.String())
+	requestUuid, err := internal.AsUUID(request.Uuid)
 	if err != nil {
 		outResp = vcrest.PatchMovieWork400JSONResponse{
 			Message: "invalid UUID format",
@@ -27,13 +27,13 @@ func (s *Server) PatchMovieWork(ctx context.Context, request vcrest.PatchMovieWo
 		}
 		return
 	}
-	newTitle, updateTitle, err := internal.ValidateOptionalNonEmptyString(request.Body.Title)
-	if err != nil {
+	if err := internal.FieldNotEmpty(request.Body.Title); err != nil {
 		outResp = vcrest.PatchMovieWork400JSONResponse{
 			Message: fmt.Sprintf("Title: %v", err),
 		}
 		return
 	}
+	title := internal.FieldMay(request.Body.Title)
 
 	txn, err := s.Pool.Begin(ctx)
 	if err != nil {
@@ -76,25 +76,11 @@ func (s *Server) PatchMovieWork(ctx context.Context, request vcrest.PatchMovieWo
 		return
 	}
 
-	if updateTitle {
-		body.Title = newTitle
+	if title != nil {
+		body.Title = *title
 	}
-	if request.Body.ReleaseYear.IsSpecified() {
-		if request.Body.ReleaseYear.IsNull() {
-			body.ReleaseYear = nil
-		} else {
-			ry := request.Body.ReleaseYear.MustGet()
-			body.ReleaseYear = &ry
-		}
-	}
-	if request.Body.TmdbId.IsSpecified() {
-		if request.Body.TmdbId.IsNull() {
-			body.TmdbId = nil
-		} else {
-			tid := request.Body.TmdbId.MustGet()
-			body.TmdbId = &tid
-		}
-	}
+	internal.FieldSetClear(request.Body.ReleaseYear, &body.ReleaseYear)
+	internal.FieldSetClear(request.Body.TmdbId, &body.TmdbId)
 
 	rawBody, err = json.Marshal(body)
 	if err != nil {

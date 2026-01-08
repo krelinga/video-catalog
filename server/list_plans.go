@@ -87,7 +87,7 @@ func (s *Server) ListPlans(ctx context.Context, request vcrest.ListPlansRequestO
 	var workUUID uuid.UUID
 	if request.Params.SourceUuid != nil {
 		var err error
-		sourceUUID, err = internal.ParseUUID(request.Params.SourceUuid.String())
+		sourceUUID, err = internal.AsUUID(request.Params.SourceUuid)
 		if err != nil {
 			outResp = vcrest.ListPlans400JSONResponse{
 				Message: "invalid sourceUuid format",
@@ -97,7 +97,7 @@ func (s *Server) ListPlans(ctx context.Context, request vcrest.ListPlansRequestO
 	}
 	if request.Params.WorkUuid != nil {
 		var err error
-		workUUID, err = internal.ParseUUID(request.Params.WorkUuid.String())
+		workUUID, err = internal.AsUUID(request.Params.WorkUuid)
 		if err != nil {
 			outResp = vcrest.ListPlans400JSONResponse{
 				Message: "invalid workUuid format",

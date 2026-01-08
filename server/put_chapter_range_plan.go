@@ -15,10 +15,16 @@ import (
 // PutChapterRangePlan adds or updates a chapter range plan with the given UUID
 func (s *Server) PutChapterRangePlan(ctx context.Context, request vcrest.PutChapterRangePlanRequestObject) (outResp vcrest.PutChapterRangePlanResponseObject, _ error) {
 	// Validate request.
-	requestUuid, err := uuid.Parse(request.Uuid.String())
+	requestUuid, err := internal.AsUUID(request.Uuid)
 	if err != nil {
 		outResp = vcrest.PutChapterRangePlan400JSONResponse{
 			Message: "invalid UUID format",
+		}
+		return
+	}
+	if requestUuid == uuid.Nil {
+		outResp = vcrest.PutChapterRangePlan400JSONResponse{
+			Message: "UUID cannot be zero",
 		}
 		return
 	}
@@ -28,59 +34,36 @@ func (s *Server) PutChapterRangePlan(ctx context.Context, request vcrest.PutChap
 		}
 		return
 	}
-	if !request.Body.SourceUuid.IsSpecified() || request.Body.SourceUuid.IsNull() {
+	if err := errors.Join(
+		internal.FieldRequired(request.Body.SourceUuid),
+		internal.FieldNotNull(request.Body.SourceUuid),
+		internal.FieldValidUUID(request.Body.SourceUuid),
+	); err != nil {
 		outResp = vcrest.PutChapterRangePlan400JSONResponse{
-			Message: "SourceUuid is required",
+			Message: fmt.Sprintf("SourceUuid: %v", err),
 		}
 		return
 	}
-	sourceUuid, err := uuid.Parse(request.Body.SourceUuid.MustGet().String())
-	if err != nil {
+	sourceUuid := internal.FieldMustUUID(request.Body.SourceUuid)
+
+	if err := errors.Join(
+		internal.FieldRequired(request.Body.WorkUuid),
+		internal.FieldNotNull(request.Body.WorkUuid),
+		internal.FieldValidUUID(request.Body.WorkUuid),
+	); err != nil {
 		outResp = vcrest.PutChapterRangePlan400JSONResponse{
-			Message: "invalid SourceUuid format",
+			Message: fmt.Sprintf("WorkUuid: %v", err),
 		}
 		return
 	}
-	if sourceUuid == uuid.Nil {
-		outResp = vcrest.PutChapterRangePlan400JSONResponse{
-			Message: "SourceUuid cannot be empty",
-		}
-		return
-	}
-	if !request.Body.WorkUuid.IsSpecified() || request.Body.WorkUuid.IsNull() {
-		outResp = vcrest.PutChapterRangePlan400JSONResponse{
-			Message: "WorkUuid is required",
-		}
-		return
-	}
-	workUuid, err := uuid.Parse(request.Body.WorkUuid.MustGet().String())
-	if err != nil {
-		outResp = vcrest.PutChapterRangePlan400JSONResponse{
-			Message: "invalid WorkUuid format",
-		}
-		return
-	}
-	if workUuid == uuid.Nil {
-		outResp = vcrest.PutChapterRangePlan400JSONResponse{
-			Message: "WorkUuid cannot be empty",
-		}
-		return
-	}
+	workUuid := internal.FieldMustUUID(request.Body.WorkUuid)
 
 	body := internal.ChapterRangePlan{
 		SourceUUID: sourceUuid,
 		WorkUUID:   workUuid,
 	}
-
-	// Optional fields
-	if request.Body.StartChapter.IsSpecified() && !request.Body.StartChapter.IsNull() {
-		startChap := int(request.Body.StartChapter.MustGet())
-		body.StartChapter = &startChap
-	}
-	if request.Body.EndChapter.IsSpecified() && !request.Body.EndChapter.IsNull() {
-		endChap := int(request.Body.EndChapter.MustGet())
-		body.EndChapter = &endChap
-	}
+	internal.FieldSet(request.Body.StartChapter, body.StartChapter)
+	internal.FieldSet(request.Body.EndChapter, body.EndChapter)
 
 	bodyRaw, err := json.Marshal(body)
 	if err != nil {
@@ -121,45 +104,17 @@ func (s *Server) PutChapterRangePlan(ctx context.Context, request vcrest.PutChap
 	}
 
 	// Update plan_inputs
-	_, err = txn.Exec(ctx, `
-		DELETE FROM plan_inputs WHERE plan_uuid = $1
-	`, requestUuid)
-	if err != nil {
+	if err := internal.UpdatePlanInputs(ctx, txn, requestUuid, sourceUuid); err != nil {
 		outResp = vcrest.PutChapterRangePlan500JSONResponse{
-			Message: fmt.Sprintf("failed to delete old plan_inputs: %v", err),
-		}
-		return
-	}
-
-	_, err = txn.Exec(ctx, `
-		INSERT INTO plan_inputs (plan_uuid, source_uuid)
-		VALUES ($1, $2)
-	`, requestUuid, sourceUuid)
-	if err != nil {
-		outResp = vcrest.PutChapterRangePlan500JSONResponse{
-			Message: fmt.Sprintf("failed to insert plan_inputs: %v", err),
+			Message: fmt.Sprintf("failed to update plan_inputs: %v", err),
 		}
 		return
 	}
 
 	// Update plan_outputs
-	_, err = txn.Exec(ctx, `
-		DELETE FROM plan_outputs WHERE plan_uuid = $1
-	`, requestUuid)
-	if err != nil {
+	if err := internal.UpdatePlanOutputs(ctx, txn, requestUuid, workUuid); err != nil {
 		outResp = vcrest.PutChapterRangePlan500JSONResponse{
-			Message: fmt.Sprintf("failed to delete old plan_outputs: %v", err),
-		}
-		return
-	}
-
-	_, err = txn.Exec(ctx, `
-		INSERT INTO plan_outputs (plan_uuid, work_uuid)
-		VALUES ($1, $2)
-	`, requestUuid, workUuid)
-	if err != nil {
-		outResp = vcrest.PutChapterRangePlan500JSONResponse{
-			Message: fmt.Sprintf("failed to insert plan_outputs: %v", err),
+			Message: fmt.Sprintf("failed to update plan_outputs: %v", err),
 		}
 		return
 	}

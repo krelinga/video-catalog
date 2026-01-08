@@ -13,7 +13,7 @@ import (
 // PutMovieEdition creates or updates a movie edition work with the given UUID
 func (s *Server) PutMovieEdition(ctx context.Context, request vcrest.PutMovieEditionRequestObject) (outResp vcrest.PutMovieEditionResponseObject, _ error) {
 	// Validate request.
-	requestUuid, err := internal.ParseUUID(request.Uuid.String())
+	requestUuid, err := internal.AsUUID(request.Uuid)
 	if err != nil {
 		outResp = vcrest.PutMovieEdition400JSONResponse{
 			Message: "invalid UUID format",
@@ -26,15 +26,19 @@ func (s *Server) PutMovieEdition(ctx context.Context, request vcrest.PutMovieEdi
 		}
 		return
 	}
-	var body internal.MovieEditionWork
-	// TODO: use helpers.
-	if !request.Body.EditionType.IsSpecified() || request.Body.EditionType.IsNull() || request.Body.EditionType.MustGet() == "" {
+	if err := errors.Join(
+		internal.FieldRequired(request.Body.EditionType),
+		internal.FieldNotNull(request.Body.EditionType),
+		internal.FieldNotEmpty(request.Body.EditionType),
+	); err != nil {
 		outResp = vcrest.PutMovieEdition400JSONResponse{
-			Message: "non-empty editionType is required",
+			Message: fmt.Sprintf("EditionType: %v", err),
 		}
 		return
-	} else {
-		body.EditionType = request.Body.EditionType.MustGet()
+	}
+
+	body := internal.MovieEditionWork{
+		EditionType: request.Body.EditionType.MustGet(),
 	}
 
 	bodyRaw, err := json.Marshal(body)

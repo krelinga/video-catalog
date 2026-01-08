@@ -23,8 +23,8 @@ func (k WorkKind) IsValid() bool {
 
 type MovieWork struct {
 	Title       string `json:"title"`
-	ReleaseYear *int   `json:"releaseYear,omitempty"`
-	TmdbId      *int   `json:"tmdbId,omitempty"`
+	ReleaseYear *int32   `json:"releaseYear,omitempty"`
+	TmdbId      *int32   `json:"tmdbId,omitempty"`
 }
 
 // ToAPI converts the MovieWork to its API representation.

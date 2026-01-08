@@ -14,7 +14,7 @@ import (
 // PatchDirectPlan updates fields of a direct plan with the given UUID
 func (s *Server) PatchDirectPlan(ctx context.Context, request vcrest.PatchDirectPlanRequestObject) (outResp vcrest.PatchDirectPlanResponseObject, _ error) {
 	// Validate request.
-	requestUuid, err := internal.ParseUUID(request.Uuid.String())
+	requestUuid, err := internal.AsUUID(request.Uuid)
 	if err != nil {
 		outResp = vcrest.PatchDirectPlan400JSONResponse{
 			Message: "invalid UUID format",
@@ -28,21 +28,27 @@ func (s *Server) PatchDirectPlan(ctx context.Context, request vcrest.PatchDirect
 		return
 	}
 
-	sourceUuid, updateInputs, err := internal.ValidateOptionalNonNullableUUID(request.Body.SourceUuid)
-	if err != nil {
+	if err := errors.Join(
+		internal.FieldNotNull(request.Body.SourceUuid),
+		internal.FieldValidUUID(request.Body.SourceUuid),
+	); err != nil {
 		outResp = vcrest.PatchDirectPlan400JSONResponse{
 			Message: fmt.Sprintf("SourceUuid: %v", err),
 		}
 		return
 	}
+	sourceUuid := internal.FieldMayUUID(request.Body.SourceUuid)
 
-	workUuid, updateOutputs, err := internal.ValidateOptionalNonNullableUUID(request.Body.WorkUuid)
-	if err != nil {
+	if err := errors.Join(
+		internal.FieldNotNull(request.Body.WorkUuid),
+		internal.FieldValidUUID(request.Body.WorkUuid),
+	); err != nil {
 		outResp = vcrest.PatchDirectPlan400JSONResponse{
 			Message: fmt.Sprintf("WorkUuid: %v", err),
 		}
 		return
 	}
+	workUuid := internal.FieldMayUUID(request.Body.WorkUuid)
 
 	txn, err := s.Pool.Begin(ctx)
 	if err != nil {
@@ -86,12 +92,11 @@ func (s *Server) PatchDirectPlan(ctx context.Context, request vcrest.PatchDirect
 		return
 	}
 
-	// Track if we need to update the relation tables
-	if updateInputs {
-		body.SourceUUID = sourceUuid
+	if sourceUuid != nil {
+		body.SourceUUID = *sourceUuid
 	}
-	if updateOutputs {
-		body.WorkUUID = workUuid
+	if workUuid != nil {
+		body.WorkUUID = *workUuid
 	}
 
 	rawBody, err = json.Marshal(body)
@@ -114,8 +119,8 @@ func (s *Server) PatchDirectPlan(ctx context.Context, request vcrest.PatchDirect
 		return
 	}
 
-	if updateInputs {
-		if err := internal.UpdatePlanInputs(ctx, txn, requestUuid, body.SourceUUID); err != nil {
+	if sourceUuid != nil {
+		if err := internal.UpdatePlanInputs(ctx, txn, requestUuid, *sourceUuid); err != nil {
 			outResp = vcrest.PatchDirectPlan500JSONResponse{
 				Message: err.Error(),
 			}
@@ -123,8 +128,8 @@ func (s *Server) PatchDirectPlan(ctx context.Context, request vcrest.PatchDirect
 		}
 	}
 
-	if updateOutputs {
-		if err := internal.UpdatePlanOutputs(ctx, txn, requestUuid, body.WorkUUID); err != nil {
+	if workUuid != nil {
+		if err := internal.UpdatePlanOutputs(ctx, txn, requestUuid, *workUuid); err != nil {
 			outResp = vcrest.PatchDirectPlan500JSONResponse{
 				Message: err.Error(),
 			}

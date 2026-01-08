@@ -13,7 +13,7 @@ import (
 // PutDiscSource adds or updates a disc source with the given UUID
 func (s *Server) PutDiscSource(ctx context.Context, request vcrest.PutDiscSourceRequestObject) (outResp vcrest.PutDiscSourceResponseObject, _ error) {
 	// Validate request.
-	requestUuid, err := internal.ParseUUID(request.Uuid.String())
+	requestUuid, err := internal.AsUUID(request.Uuid)
 	if err != nil {
 		outResp = vcrest.PutDiscSource400JSONResponse{
 			Message: "invalid UUID format",
@@ -26,22 +26,31 @@ func (s *Server) PutDiscSource(ctx context.Context, request vcrest.PutDiscSource
 		}
 		return
 	}
-	// TODO: use helpers.
-	if !request.Body.OrigDirName.IsSpecified() || request.Body.OrigDirName.IsNull() || request.Body.OrigDirName.MustGet() == "" {
+	if err := errors.Join(
+		internal.FieldRequired(request.Body.OrigDirName),
+		internal.FieldNotNull(request.Body.OrigDirName),
+		internal.FieldNotEmpty(request.Body.OrigDirName),
+	); err != nil {
 		outResp = vcrest.PutDiscSource400JSONResponse{
-			Message: "non-empty OrigDirName is required",
+			Message: fmt.Sprintf("OrigDirName: %v", err),
 		}
 		return
 	}
-	if !request.Body.Path.IsSpecified() || request.Body.Path.IsNull() || request.Body.Path.MustGet() == "" {
+
+	if err := errors.Join(
+		internal.FieldRequired(request.Body.Path),
+		internal.FieldNotNull(request.Body.Path),
+		internal.FieldNotEmpty(request.Body.Path),
+	); err != nil {
 		outResp = vcrest.PutDiscSource400JSONResponse{
-			Message: "non-empty Path is required",
+			Message: fmt.Sprintf("Path: %v", err),
 		}
 		return
 	}
-	if request.Body.AllFilesAdded.IsSpecified() && request.Body.AllFilesAdded.IsNull() {
+
+	if err := internal.FieldNotNull(request.Body.AllFilesAdded); err != nil {
 		outResp = vcrest.PutDiscSource400JSONResponse{
-			Message: "AllFilesAdded must not be null",
+			Message: fmt.Sprintf("AllFilesAdded: %v", err),
 		}
 		return
 	}
@@ -50,9 +59,7 @@ func (s *Server) PutDiscSource(ctx context.Context, request vcrest.PutDiscSource
 		OrigDirName: request.Body.OrigDirName.MustGet(),
 		Path:        request.Body.Path.MustGet(),
 	}
-	if request.Body.AllFilesAdded.IsSpecified() {
-		body.AllFilesAdded = request.Body.AllFilesAdded.MustGet()
-	}
+	internal.FieldSet(request.Body.AllFilesAdded, &body.AllFilesAdded)
 
 	bodyRaw, err := json.Marshal(body)
 	if err != nil {

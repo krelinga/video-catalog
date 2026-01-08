@@ -14,7 +14,7 @@ import (
 // PatchMovieEdition updates fields of a movie edition work with the given UUID
 func (s *Server) PatchMovieEdition(ctx context.Context, request vcrest.PatchMovieEditionRequestObject) (outResp vcrest.PatchMovieEditionResponseObject, _ error) {
 	// Validate request.
-	requestUuid, err := internal.ParseUUID(request.Uuid.String())
+	requestUuid, err := internal.AsUUID(request.Uuid)
 	if err != nil {
 		outResp = vcrest.PatchMovieEdition400JSONResponse{
 			Message: "invalid UUID format",
@@ -27,13 +27,13 @@ func (s *Server) PatchMovieEdition(ctx context.Context, request vcrest.PatchMovi
 		}
 		return
 	}
-	newEditionType, updateEditionType, err := internal.ValidateOptionalNonEmptyString(request.Body.EditionType)
-	if err != nil {
+	if err := internal.FieldNotEmpty(request.Body.EditionType); err != nil {
 		outResp = vcrest.PatchMovieEdition400JSONResponse{
 			Message: fmt.Sprintf("EditionType: %v", err),
 		}
 		return
 	}
+	editionType := internal.FieldMay(request.Body.EditionType)
 
 	txn, err := s.Pool.Begin(ctx)
 	if err != nil {
@@ -76,8 +76,8 @@ func (s *Server) PatchMovieEdition(ctx context.Context, request vcrest.PatchMovi
 		return
 	}
 
-	if updateEditionType {
-		body.EditionType = newEditionType
+	if editionType != nil {
+		body.EditionType = *editionType
 	}
 
 	rawBody, err = json.Marshal(body)

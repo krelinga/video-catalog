@@ -14,7 +14,7 @@ import (
 // PatchDiscSource updates fields of a disc source with the given UUID
 func (s *Server) PatchDiscSource(ctx context.Context, request vcrest.PatchDiscSourceRequestObject) (outResp vcrest.PatchDiscSourceResponseObject, _ error) {
 	// Validate request.
-	requestUuid, err := internal.ParseUUID(request.Uuid.String())
+	requestUuid, err := internal.AsUUID(request.Uuid)
 	if err != nil {
 		outResp = vcrest.PatchDiscSource400JSONResponse{
 			Message: "invalid UUID format",
@@ -27,23 +27,25 @@ func (s *Server) PatchDiscSource(ctx context.Context, request vcrest.PatchDiscSo
 		}
 		return
 	}
-	newOrigDirName, updateOrigDirName, err := internal.ValidateOptionalNonEmptyString(request.Body.OrigDirName)
-	if err != nil {
+	if err := internal.FieldNotEmpty(request.Body.OrigDirName); err != nil {
 		outResp = vcrest.PatchDiscSource400JSONResponse{
 			Message: fmt.Sprintf("OrigDirName: %v", err),
 		}
 		return
 	}
-	newPath, updatePath, err := internal.ValidateOptionalNonEmptyString(request.Body.Path)
-	if err != nil {
+	origDirName := internal.FieldMay(request.Body.OrigDirName)
+
+	if err := internal.FieldNotEmpty(request.Body.Path); err != nil {
 		outResp = vcrest.PatchDiscSource400JSONResponse{
 			Message: fmt.Sprintf("Path: %v", err),
 		}
 		return
 	}
-	if request.Body.AllFilesAdded.IsSpecified() && request.Body.AllFilesAdded.IsNull() {
+	path := internal.FieldMay(request.Body.Path)
+
+	if err := internal.FieldNotNull(request.Body.AllFilesAdded); err != nil {
 		outResp = vcrest.PatchDiscSource400JSONResponse{
-			Message: "AllFilesAdded cannot be null",
+			Message: fmt.Sprintf("AllFilesAdded: %v", err),
 		}
 		return
 	}
@@ -89,15 +91,13 @@ func (s *Server) PatchDiscSource(ctx context.Context, request vcrest.PatchDiscSo
 		return
 	}
 
-	if updateOrigDirName {
-		body.OrigDirName = newOrigDirName
+	if origDirName != nil {
+		body.OrigDirName = *origDirName
 	}
-	if updatePath {
-		body.Path = newPath
+	if path != nil {
+		body.Path = *path
 	}
-	if request.Body.AllFilesAdded.IsSpecified() {
-		body.AllFilesAdded = request.Body.AllFilesAdded.MustGet()
-	}
+	internal.FieldSet(request.Body.AllFilesAdded, &body.AllFilesAdded)
 
 	rawBody, err = json.Marshal(body)
 	if err != nil {

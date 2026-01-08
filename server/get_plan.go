@@ -14,7 +14,7 @@ import (
 // GetPlan retrieves a plan by UUID
 func (s *Server) GetPlan(ctx context.Context, request vcrest.GetPlanRequestObject) (outResp vcrest.GetPlanResponseObject, outErr error) {
 	// Validate request.
-	requestUuid, err := internal.ParseUUID(request.Uuid.String())
+	requestUuid, err := internal.AsUUID(request.Uuid)
 	if err != nil {
 		outResp = vcrest.GetPlan400JSONResponse{
 			Message: "invalid UUID format",

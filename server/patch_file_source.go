@@ -14,7 +14,7 @@ import (
 // PatchFileSource updates fields of a file source with the given UUID
 func (s *Server) PatchFileSource(ctx context.Context, request vcrest.PatchFileSourceRequestObject) (outResp vcrest.PatchFileSourceResponseObject, _ error) {
 	// Validate request.
-	requestUuid, err := internal.ParseUUID(request.Uuid.String())
+	requestUuid, err := internal.AsUUID(request.Uuid)
 	if err != nil {
 		outResp = vcrest.PatchFileSource400JSONResponse{
 			Message: "invalid UUID format",
@@ -27,13 +27,13 @@ func (s *Server) PatchFileSource(ctx context.Context, request vcrest.PatchFileSo
 		}
 		return
 	}
-	newPath, updatePath, err := internal.ValidateOptionalNonEmptyString(request.Body.Path)
-	if err != nil {
+	if err := internal.FieldNotEmpty(request.Body.Path); err != nil {
 		outResp = vcrest.PatchFileSource400JSONResponse{
 			Message: fmt.Sprintf("Path: %v", err),
 		}
 		return
 	}
+	path := internal.FieldMay(request.Body.Path)
 
 	txn, err := s.Pool.Begin(ctx)
 	if err != nil {
@@ -76,8 +76,8 @@ func (s *Server) PatchFileSource(ctx context.Context, request vcrest.PatchFileSo
 		return
 	}
 
-	if updatePath {
-		body.Path = newPath
+	if path != nil {
+		body.Path = *path
 	}
 
 	rawBody, err = json.Marshal(body)

@@ -14,7 +14,7 @@ import (
 // GetSource retrieves a source by UUID
 func (s *Server) GetSource(ctx context.Context, request vcrest.GetSourceRequestObject) (outResp vcrest.GetSourceResponseObject, outErr error) {
 	// Validate request.
-	requestUuid, err := internal.ParseUUID(request.Uuid.String())
+	requestUuid, err := internal.AsUUID(request.Uuid)
 	if err != nil {
 		outResp = vcrest.GetSource400JSONResponse{
 			Message: "invalid UUID format",

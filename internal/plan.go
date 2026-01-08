@@ -39,8 +39,8 @@ func (p *DirectPlan) ToAPI() *vcrest.DirectPlan {
 type ChapterRangePlan struct {
 	SourceUUID   uuid.UUID `json:"sourceUuid"`
 	WorkUUID     uuid.UUID `json:"workUuid"`
-	StartChapter *int      `json:"startChapter,omitempty"`
-	EndChapter   *int      `json:"endChapter,omitempty"`
+	StartChapter *int32    `json:"startChapter,omitempty"`
+	EndChapter   *int32    `json:"endChapter,omitempty"`
 }
 
 // ToAPI converts the ChapterRangePlan to its API representation.

@@ -833,11 +833,13 @@ components:
           example: "Inception"
         releaseYear:
           type: integer
+          format: int32
           nullable: true
           description: Release year of the movie
           example: 2010
         tmdbId:
           type: integer
+          format: int32
           nullable: true
           description: The Movie Database (TMDb) identifier for the movie
           example: 27205

@@ -14,7 +14,7 @@ import (
 // GetWork retrieves a work by UUID
 func (s *Server) GetWork(ctx context.Context, request vcrest.GetWorkRequestObject) (outResp vcrest.GetWorkResponseObject, outErr error) {
 	// Validate request.
-	requestUuid, err := internal.ParseUUID(request.Uuid.String())
+	requestUuid, err := internal.AsUUID(request.Uuid)
 	if err != nil {
 		outResp = vcrest.GetWork400JSONResponse{
 			Message: "invalid UUID format",

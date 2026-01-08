@@ -13,7 +13,7 @@ import (
 // PutFileSource adds or updates a file source with the given UUID
 func (s *Server) PutFileSource(ctx context.Context, request vcrest.PutFileSourceRequestObject) (outResp vcrest.PutFileSourceResponseObject, _ error) {
 	// Validate request.
-	requestUuid, err := internal.ParseUUID(request.Uuid.String())
+	requestUuid, err := internal.AsUUID(request.Uuid)
 	if err != nil {
 		outResp = vcrest.PutFileSource400JSONResponse{
 			Message: "invalid UUID format",
@@ -26,10 +26,13 @@ func (s *Server) PutFileSource(ctx context.Context, request vcrest.PutFileSource
 		}
 		return
 	}
-	// TODO: use helpers.
-	if !request.Body.Path.IsSpecified() || request.Body.Path.IsNull() || request.Body.Path.MustGet() == "" {
+	if err := errors.Join(
+		internal.FieldRequired(request.Body.Path),
+		internal.FieldNotNull(request.Body.Path),
+		internal.FieldNotEmpty(request.Body.Path),
+	); err != nil {
 		outResp = vcrest.PutFileSource400JSONResponse{
-			Message: "non-empty Path is required",
+			Message: fmt.Sprintf("Path: %v", err),
 		}
 		return
 	}

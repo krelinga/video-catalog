@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/krelinga/video-catalog/internal"
 	"github.com/krelinga/video-catalog/vcrest"
 )
@@ -13,10 +14,16 @@ import (
 // PutDirectPlan adds or updates a direct plan with the given UUID
 func (s *Server) PutDirectPlan(ctx context.Context, request vcrest.PutDirectPlanRequestObject) (outResp vcrest.PutDirectPlanResponseObject, _ error) {
 	// Validate request.
-	requestUuid, err := internal.ParseUUID(request.Uuid.String())
+	requestUuid, err := internal.AsUUID(request.Uuid)
 	if err != nil {
 		outResp = vcrest.PutDirectPlan400JSONResponse{
 			Message: "invalid UUID format",
+		}
+		return
+	}
+	if requestUuid == uuid.Nil {
+		outResp = vcrest.PutDirectPlan400JSONResponse{
+			Message: "UUID cannot be zero",
 		}
 		return
 	}
@@ -26,20 +33,30 @@ func (s *Server) PutDirectPlan(ctx context.Context, request vcrest.PutDirectPlan
 		}
 		return
 	}
-	sourceUuid, err := internal.ValidateRequiredNullableUUID(request.Body.SourceUuid)
-	if err != nil {
+	if err := errors.Join(
+		internal.FieldRequired(request.Body.SourceUuid),
+		internal.FieldNotNull(request.Body.SourceUuid),
+		internal.FieldValidUUID(request.Body.SourceUuid),
+	); err != nil {
 		outResp = vcrest.PutDirectPlan400JSONResponse{
 			Message: fmt.Sprintf("SourceUuid: %v", err),
 		}
 		return
 	}
-	workUuid, err := internal.ValidateRequiredNullableUUID(request.Body.WorkUuid)
-	if err != nil {
+	sourceUuid := internal.FieldMustUUID(request.Body.SourceUuid)
+
+	if err := errors.Join(
+		internal.FieldRequired(request.Body.WorkUuid),
+		internal.FieldNotNull(request.Body.WorkUuid),
+		internal.FieldValidUUID(request.Body.WorkUuid),
+	); err != nil {
 		outResp = vcrest.PutDirectPlan400JSONResponse{
 			Message: fmt.Sprintf("WorkUuid: %v", err),
 		}
 		return
 	}
+
+	workUuid := internal.FieldMustUUID(request.Body.WorkUuid)
 
 	body := internal.DirectPlan{
 		SourceUUID: sourceUuid,

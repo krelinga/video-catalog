@@ -13,7 +13,7 @@ import (
 // PutMovieWork adds or updates a movie work with the given UUID
 func (s *Server) PutMovieWork(ctx context.Context, request vcrest.PutMovieWorkRequestObject) (outResp vcrest.PutMovieWorkResponseObject, _ error) {
 	// Validate request.
-	requestUuid, err := internal.ParseUUID(request.Uuid.String())
+	requestUuid, err := internal.AsUUID(request.Uuid)
 	if err != nil {
 		outResp = vcrest.PutMovieWork400JSONResponse{
 			Message: "invalid UUID format",
@@ -26,25 +26,22 @@ func (s *Server) PutMovieWork(ctx context.Context, request vcrest.PutMovieWorkRe
 		}
 		return
 	}
-	// TODO: call helper methods.
-	var body internal.MovieWork
-	if !request.Body.Title.IsSpecified() || request.Body.Title.IsNull() || request.Body.Title.MustGet() == "" {
+	if err := errors.Join(
+		internal.FieldRequired(request.Body.Title),
+		internal.FieldNotNull(request.Body.Title),
+		internal.FieldNotEmpty(request.Body.Title),
+	); err != nil {
 		outResp = vcrest.PutMovieWork400JSONResponse{
-			Message: "non-empty title is required",
+			Message: fmt.Sprintf("Title: %v", err),
 		}
 		return
-	} else {
-		body.Title = request.Body.Title.MustGet()
 	}
-	if request.Body.ReleaseYear.IsSpecified() && !request.Body.ReleaseYear.IsNull() {
-		ry := request.Body.ReleaseYear.MustGet()
-		body.ReleaseYear = &ry
+	body := internal.MovieWork{
+		Title: request.Body.Title.MustGet(),
 	}
-	if request.Body.TmdbId.IsSpecified() && !request.Body.TmdbId.IsNull() {
-		tid := request.Body.TmdbId.MustGet()
-		body.TmdbId = &tid
-	}
-
+	internal.FieldSet(request.Body.ReleaseYear, body.ReleaseYear)
+	internal.FieldSet(request.Body.TmdbId, body.TmdbId)
+	
 	bodyRaw, err := json.Marshal(body)
 	if err != nil {
 		outResp = vcrest.PutMovieWork500JSONResponse{
