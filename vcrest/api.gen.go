@@ -106,6 +106,13 @@ type Plan struct {
 	Uuid openapi_types.UUID `json:"uuid"`
 }
 
+// PlanPage defines model for PlanPage.
+type PlanPage struct {
+	// NextPageToken Token for fetching the next page of results, if any
+	NextPageToken *string `json:"nextPageToken,omitempty"`
+	Plans         []Plan  `json:"plans,omitempty"`
+}
+
 // Source defines model for Source.
 type Source struct {
 	// Disc Details about a disc source.  Included if the source is a disc.
@@ -128,6 +135,21 @@ type Work struct {
 
 	// Uuid Unique identifier for the work
 	Uuid openapi_types.UUID `json:"uuid"`
+}
+
+// ListPlansParams defines parameters for ListPlans.
+type ListPlansParams struct {
+	// PageSize Number of plans to return per page
+	PageSize *int32 `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
+	// PageToken Token for fetching a specific page of results
+	PageToken *string `form:"pageToken,omitempty" json:"pageToken,omitempty"`
+
+	// WorkUuid Filter plans by associated work UUID
+	WorkUuid *openapi_types.UUID `form:"workUuid,omitempty" json:"workUuid,omitempty"`
+
+	// SourceUuid Filter plans by associated source UUID
+	SourceUuid *openapi_types.UUID `form:"sourceUuid,omitempty" json:"sourceUuid,omitempty"`
 }
 
 // PatchDirectPlanJSONBody defines parameters for PatchDirectPlan.
@@ -249,6 +271,9 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 
 // The interface specification for the client above.
 type ClientInterface interface {
+	// ListPlans request
+	ListPlans(ctx context.Context, params *ListPlansParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetPlan request
 	GetPlan(ctx context.Context, uuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -317,6 +342,18 @@ type ClientInterface interface {
 	PutMovieEditionWithBody(ctx context.Context, uuid openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	PutMovieEdition(ctx context.Context, uuid openapi_types.UUID, body PutMovieEditionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+}
+
+func (c *Client) ListPlans(ctx context.Context, params *ListPlansParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListPlansRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
 }
 
 func (c *Client) GetPlan(ctx context.Context, uuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -641,6 +678,103 @@ func (c *Client) PutMovieEdition(ctx context.Context, uuid openapi_types.UUID, b
 		return nil, err
 	}
 	return c.Client.Do(req)
+}
+
+// NewListPlansRequest generates requests for ListPlans
+func NewListPlansRequest(server string, params *ListPlansParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/plans")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.WorkUuid != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "workUuid", runtime.ParamLocationQuery, *params.WorkUuid); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.SourceUuid != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "sourceUuid", runtime.ParamLocationQuery, *params.SourceUuid); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
 }
 
 // NewGetPlanRequest generates requests for GetPlan
@@ -1352,6 +1486,9 @@ func WithBaseURL(baseURL string) ClientOption {
 
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
+	// ListPlansWithResponse request
+	ListPlansWithResponse(ctx context.Context, params *ListPlansParams, reqEditors ...RequestEditorFn) (*ListPlansResponse, error)
+
 	// GetPlanWithResponse request
 	GetPlanWithResponse(ctx context.Context, uuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetPlanResponse, error)
 
@@ -1420,6 +1557,30 @@ type ClientWithResponsesInterface interface {
 	PutMovieEditionWithBodyWithResponse(ctx context.Context, uuid openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutMovieEditionResponse, error)
 
 	PutMovieEditionWithResponse(ctx context.Context, uuid openapi_types.UUID, body PutMovieEditionJSONRequestBody, reqEditors ...RequestEditorFn) (*PutMovieEditionResponse, error)
+}
+
+type ListPlansResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *PlanPage
+	JSON400      *Error
+	JSON500      *Error
+}
+
+// Status returns HTTPResponse.Status
+func (r ListPlansResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListPlansResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
 }
 
 type GetPlanResponse struct {
@@ -1793,6 +1954,15 @@ func (r PutMovieEditionResponse) StatusCode() int {
 	return 0
 }
 
+// ListPlansWithResponse request returning *ListPlansResponse
+func (c *ClientWithResponses) ListPlansWithResponse(ctx context.Context, params *ListPlansParams, reqEditors ...RequestEditorFn) (*ListPlansResponse, error) {
+	rsp, err := c.ListPlans(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListPlansResponse(rsp)
+}
+
 // GetPlanWithResponse request returning *GetPlanResponse
 func (c *ClientWithResponses) GetPlanWithResponse(ctx context.Context, uuid openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetPlanResponse, error) {
 	rsp, err := c.GetPlan(ctx, uuid, reqEditors...)
@@ -2022,6 +2192,46 @@ func (c *ClientWithResponses) PutMovieEditionWithResponse(ctx context.Context, u
 		return nil, err
 	}
 	return ParsePutMovieEditionResponse(rsp)
+}
+
+// ParseListPlansResponse parses an HTTP response from a ListPlansWithResponse call
+func ParseListPlansResponse(rsp *http.Response) (*ListPlansResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListPlansResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PlanPage
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	return response, nil
 }
 
 // ParseGetPlanResponse parses an HTTP response from a GetPlanWithResponse call
@@ -2703,6 +2913,9 @@ func ParsePutMovieEditionResponse(rsp *http.Response) (*PutMovieEditionResponse,
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// List plans with pagination
+	// (GET /plans)
+	ListPlans(w http.ResponseWriter, r *http.Request, params ListPlansParams)
 	// Get a plan by UUID
 	// (GET /plans/{uuid})
 	GetPlan(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID)
@@ -2758,6 +2971,57 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// ListPlans operation middleware
+func (siw *ServerInterfaceWrapper) ListPlans(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListPlansParams
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "pageSize", r.URL.Query(), &params.PageSize)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "pageSize", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "pageToken" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "pageToken", r.URL.Query(), &params.PageToken)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "pageToken", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "workUuid" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "workUuid", r.URL.Query(), &params.WorkUuid)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workUuid", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "sourceUuid" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sourceUuid", r.URL.Query(), &params.SourceUuid)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sourceUuid", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListPlans(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // GetPlan operation middleware
 func (siw *ServerInterfaceWrapper) GetPlan(w http.ResponseWriter, r *http.Request) {
@@ -3254,6 +3518,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 		ErrorHandlerFunc:   options.ErrorHandlerFunc,
 	}
 
+	m.HandleFunc("GET "+options.BaseURL+"/plans", wrapper.ListPlans)
 	m.HandleFunc("GET "+options.BaseURL+"/plans/{uuid}", wrapper.GetPlan)
 	m.HandleFunc("PATCH "+options.BaseURL+"/plans/{uuid}/chapter_range", wrapper.PatchChapterRangePlan)
 	m.HandleFunc("PUT "+options.BaseURL+"/plans/{uuid}/chapter_range", wrapper.PutChapterRangePlan)
@@ -3271,6 +3536,41 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc("PUT "+options.BaseURL+"/works/{uuid}/movie_edition", wrapper.PutMovieEdition)
 
 	return m
+}
+
+type ListPlansRequestObject struct {
+	Params ListPlansParams
+}
+
+type ListPlansResponseObject interface {
+	VisitListPlansResponse(w http.ResponseWriter) error
+}
+
+type ListPlans200JSONResponse PlanPage
+
+func (response ListPlans200JSONResponse) VisitListPlansResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListPlans400JSONResponse Error
+
+func (response ListPlans400JSONResponse) VisitListPlansResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListPlans500JSONResponse Error
+
+func (response ListPlans500JSONResponse) VisitListPlansResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
 }
 
 type GetPlanRequestObject struct {
@@ -4055,6 +4355,9 @@ func (response PutMovieEdition500JSONResponse) VisitPutMovieEditionResponse(w ht
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// List plans with pagination
+	// (GET /plans)
+	ListPlans(ctx context.Context, request ListPlansRequestObject) (ListPlansResponseObject, error)
 	// Get a plan by UUID
 	// (GET /plans/{uuid})
 	GetPlan(ctx context.Context, request GetPlanRequestObject) (GetPlanResponseObject, error)
@@ -4129,6 +4432,32 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictHTTPServerOptions
+}
+
+// ListPlans operation middleware
+func (sh *strictHandler) ListPlans(w http.ResponseWriter, r *http.Request, params ListPlansParams) {
+	var request ListPlansRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListPlans(ctx, request.(ListPlansRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListPlans")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListPlansResponseObject); ok {
+		if err := validResponse.VisitListPlansResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
 }
 
 // GetPlan operation middleware
@@ -4608,42 +4937,46 @@ func (sh *strictHandler) PutMovieEdition(w http.ResponseWriter, r *http.Request,
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
-	"//9qc5m7l0oAAA==",
+	"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",
+	"AAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

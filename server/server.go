@@ -43,3 +43,7 @@ func (s *Server) PutChapterRangePlan(ctx context.Context, request vcrest.PutChap
 func (s *Server) PatchChapterRangePlan(ctx context.Context, request vcrest.PatchChapterRangePlanRequestObject) (vcrest.PatchChapterRangePlanResponseObject, error) {
 	return nil, fmt.Errorf("not implemented")
 }
+
+func (s *Server) ListPlans(ctx context.Context, request vcrest.ListPlansRequestObject) (vcrest.ListPlansResponseObject, error) {
+	return nil, fmt.Errorf("not implemented")
+}

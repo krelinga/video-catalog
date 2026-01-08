@@ -438,6 +438,59 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /plans:
+    get:
+      summary: List plans with pagination
+      description: Returns a paginated list of Plan objects
+      operationId: listPlans
+      parameters:
+        - name: pageSize
+          in: query
+          description: Number of plans to return per page
+          required: false
+          schema:
+            type: integer
+            format: int32
+        - name: pageToken
+          in: query
+          description: Token for fetching a specific page of results
+          required: false
+          schema:
+            type: string
+        - name: workUuid
+          in: query
+          description: Filter plans by associated work UUID
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: sourceUuid
+          in: query
+          description: Filter plans by associated source UUID
+          required: false
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanPage'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /plans/{uuid}:
     get:
       summary: Get a plan by UUID
@@ -718,6 +771,18 @@ components:
           $ref: '#/components/schemas/DirectPlan'
         chapterRange:
           $ref: '#/components/schemas/ChapterRangePlan'
+
+    PlanPage:
+      type: object
+      properties:
+        plans:
+          type: array
+          items:
+            $ref: '#/components/schemas/Plan'
+        nextPageToken:
+          type: string
+          description: Token for fetching the next page of results, if any
+          example: "eyJwYWdlIjoyfQ=="
 
     Error:
       type: object
