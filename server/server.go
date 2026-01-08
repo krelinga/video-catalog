@@ -44,6 +44,7 @@ func (s *Server) PatchChapterRangePlan(ctx context.Context, request vcrest.Patch
 	return nil, fmt.Errorf("not implemented")
 }
 
+// ListPlans lists plans with optional filtering.
 func (s *Server) ListPlans(ctx context.Context, request vcrest.ListPlansRequestObject) (vcrest.ListPlansResponseObject, error) {
 	return nil, fmt.Errorf("not implemented")
 }
