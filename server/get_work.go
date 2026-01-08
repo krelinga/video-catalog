@@ -71,9 +71,19 @@ func (s *Server) GetWork(ctx context.Context, request vcrest.GetWorkRequestObjec
 		outResp = vcrest.GetWork200JSONResponse{
 			Uuid: request.Uuid,
 			Movie: &vcrest.Movie{
-				Title:       required(movieBody.Title),	
-				ReleaseYear: optional(movieBody.ReleaseYear),
-				TmdbId:      optional(movieBody.TmdbId),
+				Title: nullable.NewNullableWithValue(movieBody.Title),
+				ReleaseYear: func() nullable.Nullable[int] {
+					if movieBody.ReleaseYear != nil {
+						return nullable.NewNullableWithValue(*movieBody.ReleaseYear)
+					}
+					return nullable.Nullable[int]{}
+				}(),
+				TmdbId: func() nullable.Nullable[int] {
+					if movieBody.TmdbId != nil {
+						return nullable.NewNullableWithValue(*movieBody.TmdbId)
+					}
+					return nullable.Nullable[int]{}
+				}(),
 			},
 		}
 		return
@@ -83,15 +93,4 @@ func (s *Server) GetWork(ctx context.Context, request vcrest.GetWorkRequestObjec
 		}
 		return
 	}
-}
-
-func required[T any](t T) nullable.Nullable[T] {
-	return nullable.NewNullableWithValue(t)
-}
-
-func optional[T any](t *T) nullable.Nullable[T] {
-	if t == nil {
-		return nullable.Nullable[T]{}
-	}
-	return nullable.NewNullableWithValue(*t)
 }
