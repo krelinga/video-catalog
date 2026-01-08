@@ -39,9 +39,9 @@ func (s *Server) PutMovieWork(ctx context.Context, request vcrest.PutMovieWorkRe
 	body := internal.MovieWork{
 		Title: request.Body.Title.MustGet(),
 	}
-	internal.FieldSet(request.Body.ReleaseYear, body.ReleaseYear)
-	internal.FieldSet(request.Body.TmdbId, body.TmdbId)
-	
+	internal.FieldSetPtr(request.Body.ReleaseYear, &body.ReleaseYear)
+	internal.FieldSetPtr(request.Body.TmdbId, &body.TmdbId)
+
 	bodyRaw, err := json.Marshal(body)
 	if err != nil {
 		outResp = vcrest.PutMovieWork500JSONResponse{

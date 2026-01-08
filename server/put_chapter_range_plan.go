@@ -62,8 +62,8 @@ func (s *Server) PutChapterRangePlan(ctx context.Context, request vcrest.PutChap
 		SourceUUID: sourceUuid,
 		WorkUUID:   workUuid,
 	}
-	internal.FieldSet(request.Body.StartChapter, body.StartChapter)
-	internal.FieldSet(request.Body.EndChapter, body.EndChapter)
+	internal.FieldSetPtr(request.Body.StartChapter, &body.StartChapter)
+	internal.FieldSetPtr(request.Body.EndChapter, &body.EndChapter)
 
 	bodyRaw, err := json.Marshal(body)
 	if err != nil {

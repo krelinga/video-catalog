@@ -133,3 +133,13 @@ func FieldSet[T any](field nullable.Nullable[T], out *T) {
 	}
 	*out = field.MustGet()
 }
+
+// FieldSetPtr sets the output pointer to point to the value contained in the field.
+// Does nothing if the field is not specified or is null.
+func FieldSetPtr[T any](field nullable.Nullable[T], out **T) {
+	if !field.IsSpecified() || field.IsNull() {
+		return
+	}
+	val := field.MustGet()
+	*out = &val
+}
